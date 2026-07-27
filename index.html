@@ -167,18 +167,18 @@
           </div>
         </div>
         <div class="advice measureCoach hidden" id="measurementCoach"></div>
-        <div class="measureGrid">
+        <div class="sectionTitle" style="margin-top:8px">➕ Nieuwe meting</div><div class="measureGrid">
           <div class="measureBox">
             <span class="small">Gewicht</span>
             <strong id="weightMeasureStatus">–</strong>
             <span class="small" id="weightMeasureDate">–</span>
-            <input id="weightInput" type="number" step="0.1" placeholder="77,8"><button id="weightMeasuredBtn">Gewicht opslaan</button>
+            <input id="weightInput" type="number" step="0.1" placeholder="77,8"><button id="weightMeasuredBtn">Meting opslaan</button>
           </div>
           <div class="measureBox">
             <span class="small">Buikomvang</span>
             <strong id="waistMeasureStatus">–</strong>
             <span class="small" id="waistMeasureDate">–</span>
-            <input id="waistInput" type="number" step="0.5" placeholder="103"><button id="waistMeasuredBtn">Buikomvang opslaan</button>
+            <input id="waistInput" type="number" step="0.5" placeholder="103">
           </div>
         </div>
       </div>
@@ -545,7 +545,7 @@ function measurementCoachText() {
 
   if (weightDiff == null && waistDiff == null) {
     if (state.lastWeight != null || state.lastWaist != null) {
-      return "Eerste meting opgeslagen. Vanaf je volgende meting kan ik de ontwikkeling voor je vergelijken.";
+      return "Mooi begin! Vanaf je volgende meting vergelijk ik automatisch je voortgang en geef ik persoonlijk advies.";
     }
     return "";
   }
