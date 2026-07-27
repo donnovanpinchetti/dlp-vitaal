@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.4.1 – Persoonlijke Coach -->
+  <!-- DLP Vitaal V0.4.3 – Meetcoach verfijning -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -83,6 +83,16 @@
     .measureBox { background:var(--blue); border-radius:14px; padding:14px; }
     .measureBox strong { display:block; font-size:18px; color:var(--blueText); margin:5px 0 3px; }
     .measureBox button { width:100%; margin-top:10px; border:1px solid #bfdbfe; border-radius:10px; background:white; padding:9px; font-weight:800; color:var(--blueText); }
+    .lastMeasurements { background:#f8fafc; border:1px solid #dbeafe; border-radius:16px; padding:14px; margin-bottom:12px; }
+    .lastMeasurementGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .lastMeasurementItem { background:white; border:1px solid var(--line); border-radius:13px; padding:12px; }
+    .lastMeasurementLabel { color:var(--muted); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.45px; }
+    .lastMeasurementValue { display:block; margin-top:5px; color:var(--navy); font-size:21px; font-weight:850; }
+    .lastMeasurementMeta { margin-top:4px; color:var(--muted); font-size:12px; line-height:1.35; }
+    .changeGood { color:#15803d; font-weight:800; }
+    .changeNeutral { color:var(--muted); font-weight:800; }
+    .changeAttention { color:#c2410c; font-weight:800; }
+    .measureCoach { margin:0 0 12px; }
     .micRow { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:stretch; }
     .micButton { width:52px; border:0; border-radius:12px; background:var(--navy); color:white; font-size:22px; }
     .micButton.listening { animation:pulse 1s infinite; }
@@ -141,18 +151,34 @@
       <div class="card">
         <div class="sectionTitle">⚖️ Meetcoach</div>
         <div class="advice info" id="measureAdvice"></div>
-        <div class="card" style="background:#f8fafc;border:1px solid #dbeafe;margin-bottom:12px;"><div class="sectionTitle">📊 Laatste metingen</div><div id="lastMeasurements" class="small"></div></div><div class="measureGrid">
+        <div class="lastMeasurements">
+          <div class="sectionTitle">📊 Laatste metingen</div>
+          <div class="lastMeasurementGrid">
+            <div class="lastMeasurementItem">
+              <span class="lastMeasurementLabel">Gewicht</span>
+              <strong class="lastMeasurementValue" id="lastWeightValue">— kg</strong>
+              <div class="lastMeasurementMeta" id="lastWeightMeta">Nog geen meting opgeslagen</div>
+            </div>
+            <div class="lastMeasurementItem">
+              <span class="lastMeasurementLabel">Buikomvang</span>
+              <strong class="lastMeasurementValue" id="lastWaistValue">— cm</strong>
+              <div class="lastMeasurementMeta" id="lastWaistMeta">Nog geen meting opgeslagen</div>
+            </div>
+          </div>
+        </div>
+        <div class="advice measureCoach hidden" id="measurementCoach"></div>
+        <div class="measureGrid">
           <div class="measureBox">
             <span class="small">Gewicht</span>
             <strong id="weightMeasureStatus">–</strong>
             <span class="small" id="weightMeasureDate">–</span>
-            <input id="weightInput" type="number" step="0.1" placeholder="77,8"><button id="weightMeasuredBtn">Gewicht opslaan</button><div class="small" id="weightTrend"></div>
+            <input id="weightInput" type="number" step="0.1" placeholder="77,8"><button id="weightMeasuredBtn">Gewicht opslaan</button>
           </div>
           <div class="measureBox">
             <span class="small">Buikomvang</span>
             <strong id="waistMeasureStatus">–</strong>
             <span class="small" id="waistMeasureDate">–</span>
-            <input id="waistInput" type="number" step="0.5" placeholder="103"><button id="waistMeasuredBtn">Buikomvang opslaan</button><div class="small" id="waistTrend"></div>
+            <input id="waistInput" type="number" step="0.5" placeholder="103"><button id="waistMeasuredBtn">Buikomvang opslaan</button>
           </div>
         </div>
       </div>
@@ -498,6 +524,42 @@ function renderTasks(t) {
     ? `${hour < 12 ? "Voor nu" : hour < 18 ? "Volgende stap" : "Voor vanavond"}: ${next.text}.`
     : "Alles voor vandaag is afgerond. Mooi gedaan.";
 }
+function formatMeasurementDate(key) {
+  if (!key) return "";
+  return new Intl.DateTimeFormat("nl-NL", {day:"numeric", month:"short", year:"numeric"}).format(parseDateKey(key));
+}
+function formatChange(current, previous, unit) {
+  if (current == null || previous == null) return "";
+  const difference = Number((current - previous).toFixed(1));
+  if (difference === 0) return `<span class="changeNeutral">Stabiel sinds vorige meting</span>`;
+  const sign = difference > 0 ? "+" : "−";
+  const value = Math.abs(difference).toLocaleString("nl-NL", {maximumFractionDigits:1});
+  const css = difference < 0 ? "changeGood" : "changeAttention";
+  return `<span class="${css}">${sign}${value} ${unit} sinds vorige meting</span>`;
+}
+function measurementCoachText() {
+  const weightDiff = state.lastWeight != null && state.previousWeight != null
+    ? Number((state.lastWeight - state.previousWeight).toFixed(1)) : null;
+  const waistDiff = state.lastWaist != null && state.previousWaist != null
+    ? Number((state.lastWaist - state.previousWaist).toFixed(1)) : null;
+
+  if (weightDiff == null && waistDiff == null) {
+    if (state.lastWeight != null || state.lastWaist != null) {
+      return "Eerste meting opgeslagen. Vanaf je volgende meting kan ik de ontwikkeling voor je vergelijken.";
+    }
+    return "";
+  }
+  if ((weightDiff == null || weightDiff < 0) && (waistDiff == null || waistDiff < 0)) {
+    return "🟢 Mooie ontwikkeling: je metingen bewegen de goede kant op. Houd je huidige ritme rustig vast.";
+  }
+  if (weightDiff === 0 && (waistDiff == null || waistDiff === 0)) {
+    return "🟠 Je metingen zijn stabiel. Kijk deze week vooral naar regelmaat in voeding, beweging en herstel.";
+  }
+  if ((weightDiff != null && weightDiff > 0) || (waistDiff != null && waistDiff > 0)) {
+    return "🟠 Er is een lichte stijging sinds de vorige meting. Eén meting zegt niet alles; houd je routine vast en kijk naar de trend.";
+  }
+  return "Je metingen laten een gemengd beeld zien. Kijk vooral naar de ontwikkeling over meerdere meetmomenten.";
+}
 function renderMeasurements() {
   const today = new Date();
   const weightNext = nextWeekday(state.weightWeekday);
@@ -533,7 +595,34 @@ function renderMeasurements() {
   else if (weightDue) advice = "Vandaag is je vaste weegmoment. Weeg bij voorkeur na het opstaan en vóór het ontbijt.";
   else if (waistDue) advice = "Het is tijd om je buikomvang opnieuw te meten. Meet ontspannen en steeds op dezelfde plek.";
   else if (weightDays === 1) advice = "Morgen is je vaste weegmoment. Probeer onder dezelfde omstandigheden te meten.";
-  document.getElementById("measureAdvice").textContent = advice; const wt=document.getElementById("weightTrend"); if(wt&&state.lastWeight!=null){wt.textContent=state.previousWeight!=null?((state.lastWeight-state.previousWeight)<0?`↓ ${Math.abs((state.lastWeight-state.previousWeight).toFixed(1))} kg`:`Δ ${(state.lastWeight-state.previousWeight).toFixed(1)} kg`):`Laatste gewicht: ${state.lastWeight} kg`;} const ws=document.getElementById("waistTrend"); if(ws&&state.lastWaist!=null){ws.textContent=`Laatste buikomvang: ${state.lastWaist} cm`;}
+  document.getElementById("measureAdvice").textContent = advice;
+
+  const weightValue = document.getElementById("lastWeightValue");
+  const weightMeta = document.getElementById("lastWeightMeta");
+  if (state.lastWeight != null) {
+    weightValue.textContent = `${Number(state.lastWeight).toLocaleString("nl-NL", {maximumFractionDigits:1})} kg`;
+    const change = formatChange(state.lastWeight, state.previousWeight, "kg");
+    weightMeta.innerHTML = `${formatMeasurementDate(state.lastWeightDate)}${change ? "<br>" + change : ""}`;
+  } else {
+    weightValue.textContent = "— kg";
+    weightMeta.textContent = "Nog geen meting opgeslagen";
+  }
+
+  const waistValue = document.getElementById("lastWaistValue");
+  const waistMeta = document.getElementById("lastWaistMeta");
+  if (state.lastWaist != null) {
+    waistValue.textContent = `${Number(state.lastWaist).toLocaleString("nl-NL", {maximumFractionDigits:1})} cm`;
+    const change = formatChange(state.lastWaist, state.previousWaist, "cm");
+    waistMeta.innerHTML = `${formatMeasurementDate(state.lastWaistDate)}${change ? "<br>" + change : ""}`;
+  } else {
+    waistValue.textContent = "— cm";
+    waistMeta.textContent = "Nog geen meting opgeslagen";
+  }
+
+  const coach = document.getElementById("measurementCoach");
+  const coachText = measurementCoachText();
+  coach.textContent = coachText;
+  coach.classList.toggle("hidden", !coachText);
 }
 function runMealAnalysis() {
   const text = document.getElementById("mealText").value.trim();
