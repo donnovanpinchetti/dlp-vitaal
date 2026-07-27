@@ -10,6 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
+  <!-- DLP Vitaal V0.4 – Persoonlijke Coach -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -70,45 +71,46 @@
     .mealTitle { font-weight:800; margin-bottom:5px; }
     .mealMeta { color:var(--muted); font-size:13px; }
     .hidden { display:none; }
-
-    .speechWrap { position:relative; }
-    .speechWrap textarea { padding-right:62px; }
-    .micBtn {
-      position:absolute; right:10px; bottom:10px; width:44px; height:44px;
-      border:0; border-radius:50%; background:var(--navy); color:white;
-      font-size:20px; display:grid; place-items:center; cursor:pointer;
-      box-shadow:0 4px 12px rgba(15,23,42,.18);
-    }
-    .micBtn.listening { background:#b91c1c; animation:pulse 1s infinite; }
-    @keyframes pulse { 50% { transform:scale(1.08); } }
-    .speechHint { margin-top:8px; display:none; }
-    .nextStep { background:var(--orange); border:1px solid var(--orangeLine); color:var(--navy); }
+    .taskHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }
+    .taskProgress { font-size:13px; color:var(--muted); font-weight:800; white-space:nowrap; }
+    .task { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+    .task:last-child { border-bottom:0; }
+    .taskIcon { width:25px; height:25px; border-radius:50%; display:grid; place-items:center; flex:0 0 25px; background:#f1f5f9; color:var(--muted); font-size:14px; font-weight:900; }
+    .task.done .taskIcon { background:var(--green); color:var(--greenText); }
+    .taskText { font-weight:750; line-height:1.35; }
+    .taskSub { color:var(--muted); font-size:12px; margin-top:3px; line-height:1.35; }
+    .measureGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .measureBox { background:var(--blue); border-radius:14px; padding:14px; }
+    .measureBox strong { display:block; font-size:18px; color:var(--blueText); margin:5px 0 3px; }
+    .measureBox button { width:100%; margin-top:10px; border:1px solid #bfdbfe; border-radius:10px; background:white; padding:9px; font-weight:800; color:var(--blueText); }
+    .micRow { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:stretch; }
+    .micButton { width:52px; border:0; border-radius:12px; background:var(--navy); color:white; font-size:22px; }
+    .micButton.listening { animation:pulse 1s infinite; }
+    @keyframes pulse { 50% { opacity:.55; } }
   </style>
 </head>
 <body>
   <main class="app">
     <header>
       <h1>DLP VITAAL</h1>
-      <p>Jouw coach voor vandaag · V0.3</p>
+      <p>Jouw coach voor vandaag</p>
       <div class="date" id="date"></div>
     </header>
 
     <section id="todayScreen" class="screen active">
       <div class="card hero">
-        <h2 id="greetingText">Goedemorgen Don 👋</h2>
+        <h2>Goedemorgen Don 👋</h2>
         <p id="recoveryText">Je herstel ziet er vandaag goed uit.</p>
         <p id="sleepText">Slaapgegevens ontbreken nog.</p>
       </div>
 
-      <div class="card nextStep">
-        <div class="sectionTitle">➡️ Jouw volgende stap</div>
-        <div class="advice info" id="nextStepText"></div>
-      </div>
-
       <div class="card">
-        <div class="sectionTitle">🎯 Vandaag</div>
-        <div class="advice" id="advice1"></div>
-        <div class="advice" id="advice2"></div>
+        <div class="taskHeader">
+          <div class="sectionTitle" style="margin:0">🎯 Jouw volgende stap</div>
+          <div class="taskProgress" id="taskProgress">0 van 5 klaar</div>
+        </div>
+        <div class="advice" id="nextStepText"></div>
+        <div id="taskList"></div>
 
         <div class="field">
           <label for="activity">Hoofdactiviteit</label>
@@ -133,6 +135,26 @@
             <option>Anders</option>
           </select>
         </div>
+        <label class="check"><input type="checkbox" id="activityDone" /> Geplande beweging gedaan</label>
+      </div>
+
+      <div class="card">
+        <div class="sectionTitle">⚖️ Meetcoach</div>
+        <div class="advice info" id="measureAdvice"></div>
+        <div class="measureGrid">
+          <div class="measureBox">
+            <span class="small">Gewicht</span>
+            <strong id="weightMeasureStatus">–</strong>
+            <span class="small" id="weightMeasureDate">–</span>
+            <button id="weightMeasuredBtn">Vandaag gewogen</button>
+          </div>
+          <div class="measureBox">
+            <span class="small">Buikomvang</span>
+            <strong id="waistMeasureStatus">–</strong>
+            <span class="small" id="waistMeasureDate">–</span>
+            <button id="waistMeasuredBtn">Vandaag gemeten</button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -142,11 +164,6 @@
         <div class="progressWrap"><div class="progress" id="proteinProgress"></div></div>
         <div class="small" id="proteinText"></div>
         <button class="secondary" data-go="foodScreen">Maaltijd toevoegen</button>
-      </div>
-
-      <div class="card">
-        <div class="sectionTitle">💡 Tip van vandaag</div>
-        <div class="advice info" id="dailyTipText"></div>
       </div>
 
       <div class="card">
@@ -183,11 +200,11 @@
       <div class="card">
         <div class="field">
           <label for="mealText">Jouw maaltijd</label>
-          <div class="speechWrap">
+          <div class="micRow">
             <textarea id="mealText" placeholder="Bijvoorbeeld: 250 gram Griekse yoghurt, 40 gram havermout, een handje blauwe bessen en een banaan."></textarea>
-            <button class="micBtn" id="micBtn" type="button" aria-label="Maaltijd inspreken">🎤</button>
+            <button class="micButton" id="micBtn" type="button" aria-label="Maaltijd inspreken">🎤</button>
           </div>
-          <div class="small speechHint" id="speechHint"></div>
+          <div class="small" id="speechStatus" style="margin-top:7px">Je kunt typen of je maaltijd inspreken.</div>
         </div>
         <button class="primary" id="analyseBtn" style="margin-top:12px">Analyseer mijn maaltijd</button>
         <p class="small">Deze proefversie maakt lokaal een praktische schatting op basis van veelvoorkomende producten. Controleer de uitkomst; precieze merken en porties kunnen afwijken.</p>
@@ -246,6 +263,23 @@
           <label for="calorieGoal">Praktisch caloriedoel (kcal)</label>
           <input id="calorieGoal" type="number" min="1200" max="4000" step="50" value="2000" />
         </div>
+        <div class="field">
+          <label for="weightWeekday">Vaste weegdag</label>
+          <select id="weightWeekday">
+            <option value="1">Maandag</option><option value="2">Dinsdag</option>
+            <option value="3">Woensdag</option><option value="4">Donderdag</option>
+            <option value="5">Vrijdag</option><option value="6">Zaterdag</option>
+            <option value="0">Zondag</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="waistInterval">Buikomvang meten</label>
+          <select id="waistInterval">
+            <option value="14">Elke 2 weken</option>
+            <option value="30">Elke maand</option>
+            <option value="42">Elke 6 weken</option>
+          </select>
+        </div>
         <div class="row"><span class="label">Dagelijkse basis</span><span class="value">Eén moment</span></div>
         <div class="row"><span class="label">Elektrolyten</span><span class="value">Sport/vasten</span></div>
         <button class="primary" id="resetBtn" style="margin-top:14px">Wis alle lokale invoer</button>
@@ -265,13 +299,19 @@ const todayKey = new Date().toISOString().slice(0,10);
 const defaults = {
   activity:"Wandelen 30 minuten", extra:"Krachttraining 20 minuten",
   strategy:"Normaal eten", proteinGoal:125, calorieGoal:2000,
-  basisDone:false, waterDone:false, dayDone:false,
+  basisDone:false, waterDone:false, dayDone:false, activityDone:false,
+  weightWeekday:3, waistInterval:30,
+  lastWeightDate:"2026-07-27", lastWaistDate:"2026-07-27",
   mealDate:todayKey, meals:[]
 };
 const state = {...defaults, ...JSON.parse(localStorage.getItem("dlpVitaalState") || "{}")};
 if (state.mealDate !== todayKey) {
   state.mealDate = todayKey;
   state.meals = [];
+  state.basisDone = false;
+  state.waterDone = false;
+  state.dayDone = false;
+  state.activityDone = false;
 }
 
 const foodDB = [
@@ -312,7 +352,8 @@ function setInput(id, value) {
   else el.value = value;
 }
 function hydrate() {
-  ["activity","extra","proteinGoal","calorieGoal","basisDone","waterDone","dayDone"].forEach(k => setInput(k, state[k]));
+  ["activity","extra","proteinGoal","calorieGoal","weightWeekday","waistInterval",
+    "basisDone","waterDone","dayDone","activityDone"].forEach(k => setInput(k, state[k]));
 }
 function totals() {
   return state.meals.reduce((a,m) => ({
@@ -398,32 +439,107 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 }
 
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? "Goedemorgen Don 👋" : h < 18 ? "Goedemiddag Don 👋" : "Goedenavond Don 👋";
+function localDateKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,"0");
+  const d = String(date.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
 }
-function nextStep(t) {
-  if (state.meals.length === 0) return "Registreer je eerste maaltijd. Je kunt hem typen of inspreken.";
-  const pLeft = Math.max(0, Number(state.proteinGoal) - t.protein);
-  if (!state.basisDone) return "Doe je basisroutine op één vast moment, zodat je die niet vergeet.";
-  if (pLeft > 35) return `Kies bij je volgende maaltijd een duidelijke eiwitbron. Je hebt nog ongeveer ${pLeft} g nodig.`;
-  if (!state.waterDone) return "Drink verspreid over de rest van de dag voldoende water.";
-  if (!state.dayDone) return "Rond vanavond je dag kort af in DLP Vitaal.";
-  return "Je belangrijkste acties voor vandaag zijn afgerond. Goed gedaan.";
+function parseDateKey(key) {
+  const [y,m,d] = key.split("-").map(Number);
+  return new Date(y,m-1,d,12,0,0);
 }
-function dailyTip(t) {
-  const day = new Date().getDay();
-  const tips = [
-    "Maak gezond kiezen eenvoudig: zet je eiwitbron als eerste op je bord.",
-    "Een korte wandeling na een maaltijd helpt om de dag actief te houden.",
-    "Verdeel je eiwitten liever over meerdere momenten dan alles in één maaltijd.",
-    "Drink regelmatig kleine hoeveelheden water in plaats van alles aan het einde van de dag.",
-    "Een eenvoudige maaltijd die je echt maakt is beter dan een perfect plan dat blijft liggen.",
-    "Herstel telt mee. Kies op een rustige dag voor wandelen en mobiliteit.",
-    "Kijk vandaag niet alleen naar calorieën, maar ook naar eiwit, groente en verzadiging."
+function dateLabel(date) {
+  return new Intl.DateTimeFormat("nl-NL", {weekday:"long", day:"numeric", month:"long"}).format(date);
+}
+function dayDifference(from, to) {
+  const a = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const b = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  return Math.round((b-a)/86400000);
+}
+function nextWeekday(weekday) {
+  const now = new Date();
+  let diff = (Number(weekday) - now.getDay() + 7) % 7;
+  if (diff === 0 && state.lastWeightDate === localDateKey()) diff = 7;
+  const result = new Date(now);
+  result.setDate(now.getDate()+diff);
+  return result;
+}
+function nextWaistDate() {
+  const last = parseDateKey(state.lastWaistDate || todayKey);
+  const next = new Date(last);
+  next.setDate(last.getDate()+Number(state.waistInterval || 30));
+  return next;
+}
+function taskData(t) {
+  const hour = new Date().getHours();
+  const proteinDone = t.protein >= Number(state.proteinGoal);
+  const hasMeal = state.meals.length > 0;
+  return [
+    {done:hasMeal, text:hasMeal ? "Eerste maaltijd geregistreerd" : (hour < 11 ? "Ontbijt registreren" : "Eerste maaltijd registreren"), sub:hasMeal ? `${t.protein} g eiwit geregistreerd` : "Dan kan de coach de rest van je dag beter sturen."},
+    {done:state.basisDone, text:"Basisroutine", sub:state.basisDone ? "Gedaan voor vandaag." : "Eén vast innamemoment."},
+    {done:state.activityDone, text:state.activity, sub:state.activityDone ? "Beweging afgerond." : "Jouw gekozen hoofdactiviteit."},
+    {done:proteinDone, text:"Eiwitdoel halen", sub:proteinDone ? `${state.proteinGoal} g of meer gehaald.` : `Nog ${Math.max(0, Number(state.proteinGoal)-t.protein)} g te gaan.`},
+    {done:state.dayDone, text:"Dag afronden", sub:state.dayDone ? "Dag is afgerond." : (hour < 18 ? "Dit komt vanavond." : "Kijk kort terug op vandaag.")}
   ];
-  if (state.meals.length && t.protein < 20) return "Je eerste geregistreerde maaltijd bevat nog weinig eiwit. Maak je volgende keuze duidelijk eiwitrijker.";
-  return tips[day];
+}
+function renderTasks(t) {
+  const tasks = taskData(t);
+  const done = tasks.filter(x => x.done).length;
+  document.getElementById("taskProgress").textContent = `${done} van ${tasks.length} klaar`;
+  document.getElementById("taskList").innerHTML = tasks.map(task => `
+    <div class="task ${task.done ? "done" : ""}">
+      <div class="taskIcon">${task.done ? "✓" : "•"}</div>
+      <div><div class="taskText">${escapeHtml(task.text)}</div><div class="taskSub">${escapeHtml(task.sub)}</div></div>
+    </div>`).join("");
+  const next = tasks.find(x => !x.done);
+  const hour = new Date().getHours();
+  document.getElementById("nextStepText").textContent = next
+    ? `${hour < 12 ? "Voor nu" : hour < 18 ? "Volgende stap" : "Voor vanavond"}: ${next.text}.`
+    : "Alles voor vandaag is afgerond. Mooi gedaan.";
+}
+function renderMeasurements() {
+  const today = new Date();
+  const weightNext = nextWeekday(state.weightWeekday);
+  const waistNext = nextWaistDate();
+  const weightDays = dayDifference(today, weightNext);
+  const waistDays = dayDifference(today, waistNext);
+  const weightDue = weightDays <= 0;
+  const waistDue = waistDays <= 0;
+
+  document.getElementById("weightMeasureStatus").textContent =
+    weightDue ? "Vandaag meten" : weightDays === 1 ? "Morgen" : `Over ${weightDays} dagen`;
+  document.getElementById("weightMeasureDate").textContent = dateLabel(weightNext);
+  document.getElementById("waistMeasureStatus").textContent =
+    waistDue ? "Vandaag meten" : waistDays === 1 ? "Morgen" : `Over ${waistDays} dagen`;
+  document.getElementById("waistMeasureDate").textContent = dateLabel(waistNext);
+
+  let advice = "Vandaag staat er geen lichaamsmeting gepland.";
+  if (weightDue && waistDue) advice = "Vandaag zijn gewicht én buikomvang aan de beurt. Meet bij voorkeur 's ochtends vóór het ontbijt.";
+  else if (weightDue) advice = "Vandaag is je vaste weegmoment. Weeg bij voorkeur na het opstaan en vóór het ontbijt.";
+  else if (waistDue) advice = "Het is tijd om je buikomvang opnieuw te meten. Meet ontspannen en steeds op dezelfde plek.";
+  else if (weightDays === 1) advice = "Morgen is je vaste weegmoment. Probeer onder dezelfde omstandigheden te meten.";
+  document.getElementById("measureAdvice").textContent = advice;
+}
+function runMealAnalysis() {
+  const text = document.getElementById("mealText").value.trim();
+  if (!text) {
+    alert("Typ of spreek eerst in wat je hebt gegeten.");
+    return;
+  }
+  pendingMeal = {...analyseMeal(text), text};
+  const t = totals();
+  document.getElementById("resultCalories").textContent = pendingMeal.kcal + " kcal";
+  document.getElementById("resultProtein").textContent = pendingMeal.protein + " g";
+  document.getElementById("resultCarbs").textContent = pendingMeal.carbs + " g";
+  document.getElementById("resultFat").textContent = pendingMeal.fat + " g";
+  document.getElementById("estimateNote").textContent =
+    pendingMeal.found.length
+      ? "Herkend: " + pendingMeal.found.join(", ") + ". Dit blijft een praktische schatting."
+      : "Nog geen herkenbare producten gevonden.";
+  document.getElementById("foodAdvice").textContent = foodCoach(pendingMeal, t);
+  document.getElementById("analysisCard").classList.remove("hidden");
+  document.getElementById("analysisCard").scrollIntoView({behavior:"smooth", block:"start"});
 }
 
 function render() {
@@ -433,19 +549,8 @@ function render() {
   const proteinLeft = Math.max(0, Number(state.proteinGoal) - t.protein);
   const pct = Math.min(100, Math.round((t.protein / Number(state.proteinGoal)) * 100));
 
-  document.getElementById("greetingText").textContent = greeting();
-  document.getElementById("nextStepText").textContent = nextStep(t);
-  document.getElementById("dailyTipText").textContent = dailyTip(t);
-
-  document.getElementById("advice1").textContent =
-    rest ? "Kies vandaag bewust voor herstel." :
-    padel ? "Padel is vandaag je hoofdactiviteit." :
-    state.activity === "Krachttraining 20 minuten" ? "Plan 20 minuten krachttraining." :
-    "Kies 30 minuten wandelen.";
-
-  document.getElementById("advice2").textContent =
-    state.meals.length === 0 ? "Registreer je eerste maaltijd; daarna volgt voedingsadvies." :
-    dayCoach(t);
+  renderTasks(t);
+  renderMeasurements();
 
   const electrolyteNeeded = padel;
   document.getElementById("electrolytesText").textContent =
@@ -469,37 +574,18 @@ function showScreen(id) {
   window.scrollTo({top:0, behavior:"smooth"});
 }
 function bind() {
-  ["activity","extra","proteinGoal","calorieGoal"].forEach(id => {
+  ["activity","extra","proteinGoal","calorieGoal","weightWeekday","waistInterval"].forEach(id => {
     document.getElementById(id).addEventListener("change", e => {
       state[id] = Number.isNaN(Number(e.target.value)) || e.target.tagName === "SELECT" ? e.target.value : Number(e.target.value);
       save(); render();
     });
   });
-  ["basisDone","waterDone","dayDone"].forEach(id => {
+  ["basisDone","waterDone","dayDone","activityDone"].forEach(id => {
     document.getElementById(id).addEventListener("change", e => {
       state[id] = e.target.checked; save(); render();
     });
   });
-  document.getElementById("analyseBtn").addEventListener("click", () => {
-    const text = document.getElementById("mealText").value.trim();
-    if (!text) {
-      alert("Typ eerst wat je hebt gegeten.");
-      return;
-    }
-    pendingMeal = {...analyseMeal(text), text};
-    const t = totals();
-    document.getElementById("resultCalories").textContent = pendingMeal.kcal + " kcal";
-    document.getElementById("resultProtein").textContent = pendingMeal.protein + " g";
-    document.getElementById("resultCarbs").textContent = pendingMeal.carbs + " g";
-    document.getElementById("resultFat").textContent = pendingMeal.fat + " g";
-    document.getElementById("estimateNote").textContent =
-      pendingMeal.found.length
-        ? "Herkend: " + pendingMeal.found.join(", ") + ". Dit blijft een praktische schatting."
-        : "Nog geen herkenbare producten gevonden.";
-    document.getElementById("foodAdvice").textContent = foodCoach(pendingMeal, t);
-    document.getElementById("analysisCard").classList.remove("hidden");
-    document.getElementById("analysisCard").scrollIntoView({behavior:"smooth", block:"start"});
-  });
+  document.getElementById("analyseBtn").addEventListener("click", runMealAnalysis);
   document.getElementById("saveMealBtn").addEventListener("click", () => {
     if (!pendingMeal || pendingMeal.found.length === 0) {
       alert("Deze maaltijd kan nog niet zinvol worden opgeslagen. Voeg concretere producten en hoeveelheden toe.");
@@ -518,6 +604,45 @@ function bind() {
       save(); render();
     }
   });
+  document.getElementById("weightMeasuredBtn").addEventListener("click", () => {
+    state.lastWeightDate = localDateKey();
+    save(); render();
+  });
+  document.getElementById("waistMeasuredBtn").addEventListener("click", () => {
+    state.lastWaistDate = localDateKey();
+    save(); render();
+  });
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const micBtn = document.getElementById("micBtn");
+  if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.lang = "nl-NL";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.addEventListener("start", () => {
+      micBtn.classList.add("listening");
+      document.getElementById("speechStatus").textContent = "Ik luister… vertel wat je hebt gegeten.";
+    });
+    recognition.addEventListener("result", event => {
+      const spoken = event.results[0][0].transcript;
+      document.getElementById("mealText").value = spoken;
+      document.getElementById("speechStatus").textContent = `Gehoord: “${spoken}”`;
+      runMealAnalysis();
+    });
+    recognition.addEventListener("end", () => micBtn.classList.remove("listening"));
+    recognition.addEventListener("error", () => {
+      micBtn.classList.remove("listening");
+      document.getElementById("speechStatus").textContent = "Inspreken lukte niet. Probeer opnieuw of gebruik het toetsenbord.";
+    });
+    micBtn.addEventListener("click", () => recognition.start());
+  } else {
+    micBtn.addEventListener("click", () => {
+      document.getElementById("mealText").focus();
+      document.getElementById("speechStatus").textContent = "Gebruik de microfoon op je iPhone-toetsenbord om te dicteren.";
+    });
+  }
+
   document.getElementById("resetBtn").addEventListener("click", () => {
     if (confirm("Alle lokale invoer wissen?")) {
       localStorage.removeItem("dlpVitaalState");
@@ -531,69 +656,11 @@ function bind() {
     btn.addEventListener("click", () => showScreen(btn.dataset.go));
   });
 }
-
-function setupSpeech() {
-  const micBtn = document.getElementById("micBtn");
-  const mealText = document.getElementById("mealText");
-  const speechHint = document.getElementById("speechHint");
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-  if (!SpeechRecognition) {
-    micBtn.addEventListener("click", () => {
-      speechHint.style.display = "block";
-      speechHint.textContent = "Deze browser ondersteunt deze spraakknop niet. Tik in het tekstvak en gebruik het microfoontje op het iPhone-toetsenbord.";
-      mealText.focus();
-    });
-    return;
-  }
-
-  const recognition = new SpeechRecognition();
-  recognition.lang = "nl-NL";
-  recognition.interimResults = true;
-  recognition.continuous = false;
-  let finalText = "";
-
-  micBtn.addEventListener("click", () => {
-    finalText = mealText.value.trim();
-    if (finalText) finalText += " ";
-    speechHint.style.display = "block";
-    speechHint.textContent = "Ik luister… spreek rustig uit wat je hebt gegeten.";
-    micBtn.classList.add("listening");
-    micBtn.textContent = "⏹";
-    try { recognition.start(); } catch (_) {}
-  });
-
-  recognition.onresult = event => {
-    let interim = "";
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const text = event.results[i][0].transcript;
-      if (event.results[i].isFinal) finalText += text;
-      else interim += text;
-    }
-    mealText.value = (finalText + interim).trim();
-  };
-
-  recognition.onend = () => {
-    micBtn.classList.remove("listening");
-    micBtn.textContent = "🎤";
-    speechHint.textContent = mealText.value
-      ? "Inspreken voltooid. Controleer de tekst en tik daarna op ‘Analyseer mijn maaltijd’."
-      : "Ik heb niets verstaan. Probeer het opnieuw of gebruik het microfoontje op het toetsenbord.";
-  };
-
-  recognition.onerror = () => {
-    micBtn.classList.remove("listening");
-    micBtn.textContent = "🎤";
-    speechHint.style.display = "block";
-    speechHint.textContent = "Inspreken lukte niet. Controleer de microfoontoestemming van Safari of gebruik het microfoontje op het iPhone-toetsenbord.";
-  };
-}
-
 document.getElementById("date").textContent = new Intl.DateTimeFormat("nl-NL", {
   weekday:"long", day:"numeric", month:"long"
 }).format(new Date());
 
-hydrate(); bind(); setupSpeech(); render();
+hydrate(); bind(); render();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 </script>
 </body>
