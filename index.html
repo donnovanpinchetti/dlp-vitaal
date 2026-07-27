@@ -29,25 +29,30 @@
     .hero h2 { margin:0 0 8px; font-size:24px; }
     .hero p { margin:5px 0; color:var(--slate); line-height:1.45; }
     .sectionTitle { margin:0 0 10px; font-size:13px; letter-spacing:.7px; color:var(--muted); font-weight:800; text-transform:uppercase; }
-    .advice { background:var(--green); color:var(--greenText); border-radius:14px; padding:13px 14px; margin:9px 0; font-weight:700; line-height:1.35; }
+    .advice { background:var(--green); color:var(--greenText); border-radius:14px; padding:13px 14px; margin:9px 0; font-weight:700; line-height:1.4; }
+    .info { background:var(--blue); color:var(--blueText); }
     .warning { background:var(--danger); color:var(--dangerText); }
     .row { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); }
     .row:last-child { border-bottom:0; }
     .label { color:var(--slate); font-weight:650; }
     .value { font-weight:800; }
-    select,input[type="number"] { width:100%; border:1px solid var(--orangeLine); background:var(--orange); color:var(--navy); border-radius:12px; padding:12px 13px; font-size:16px; font-weight:700; }
+    select,input[type="number"],textarea {
+      width:100%; border:1px solid var(--orangeLine); background:var(--orange); color:var(--navy);
+      border-radius:12px; padding:12px 13px; font-size:16px; font-weight:650; font-family:inherit;
+    }
+    textarea { min-height:120px; resize:vertical; line-height:1.45; }
     .field { margin-top:10px; }
     .field label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; font-weight:700; }
     .progressWrap { height:12px; background:#dbeafe; border-radius:99px; overflow:hidden; margin:12px 0 6px; }
     .progress { height:100%; background:#2563eb; width:0%; transition:width .2s ease; }
-    .small { color:var(--muted); font-size:13px; }
+    .small { color:var(--muted); font-size:13px; line-height:1.45; }
     .check { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); font-weight:700; }
     .check:last-child { border-bottom:0; }
     input[type="checkbox"] { width:22px; height:22px; accent-color:#16a34a; }
     details summary { cursor:pointer; font-weight:800; color:var(--blueText); }
     details .inside { padding-top:10px; }
-    .nav { position:sticky; bottom:10px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; background:rgba(255,255,255,.94); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:16px; padding:8px; margin-top:18px; }
-    .nav button { border:0; border-radius:12px; padding:11px 8px; background:transparent; font-weight:800; color:var(--muted); }
+    .nav { position:sticky; bottom:10px; display:grid; grid-template-columns:repeat(4,1fr); gap:6px; background:rgba(255,255,255,.94); backdrop-filter:blur(12px); border:1px solid var(--line); border-radius:16px; padding:8px; margin-top:18px; }
+    .nav button { border:0; border-radius:12px; padding:11px 5px; background:transparent; font-weight:800; color:var(--muted); font-size:12px; }
     .nav button.active { background:var(--navy); color:white; }
     .screen { display:none; }
     .screen.active { display:block; }
@@ -56,6 +61,15 @@
     .mini b { display:block; font-size:22px; color:var(--blueText); margin-top:4px; }
     .trend { font-size:13px; color:var(--muted); margin-top:4px; }
     button.primary { width:100%; border:0; border-radius:14px; padding:14px; background:var(--navy); color:white; font-size:16px; font-weight:800; }
+    button.secondary { width:100%; border:1px solid var(--line); border-radius:14px; padding:12px; background:white; color:var(--navy); font-size:15px; font-weight:800; margin-top:10px; }
+    .analysisGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+    .analysisItem { background:var(--blue); border-radius:14px; padding:13px; color:var(--muted); font-size:13px; font-weight:700; }
+    .analysisItem b { display:block; color:var(--blueText); font-size:22px; margin-top:4px; }
+    .meal { padding:12px 0; border-bottom:1px solid var(--line); }
+    .meal:last-child { border-bottom:0; }
+    .mealTitle { font-weight:800; margin-bottom:5px; }
+    .mealMeta { color:var(--muted); font-size:13px; }
+    .hidden { display:none; }
   </style>
 </head>
 <body>
@@ -104,26 +118,12 @@
       </div>
 
       <div class="card">
-        <div class="sectionTitle">🍽️ Voeding</div>
-        <div class="field">
-          <label for="strategy">Voedingsstrategie</label>
-          <select id="strategy">
-            <option>Normaal eten</option>
-            <option>Eiwitrijk eten</option>
-            <option>16:8 vasten</option>
-            <option>18:6 vasten</option>
-            <option>24 uur vasten</option>
-            <option>Koolhydraatarm</option>
-            <option>Vrije dag</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="protein">Eiwit gegeten vandaag (g)</label>
-          <input id="protein" type="number" min="0" max="300" step="5" value="0" />
-        </div>
+        <div class="sectionTitle">🍽️ Eten vandaag</div>
+        <div class="row"><span class="label">Calorieën geregistreerd</span><span class="value" id="todayCalories">0 kcal</span></div>
+        <div class="row"><span class="label">Eiwitten geregistreerd</span><span class="value" id="todayProtein">0 g</span></div>
         <div class="progressWrap"><div class="progress" id="proteinProgress"></div></div>
         <div class="small" id="proteinText"></div>
+        <button class="secondary" data-go="foodScreen">Maaltijd toevoegen</button>
       </div>
 
       <div class="card">
@@ -151,6 +151,50 @@
       </div>
     </section>
 
+    <section id="foodScreen" class="screen">
+      <div class="card hero">
+        <h2>Wat heb je gegeten?</h2>
+        <p>Typ het zoals je het zelf zou vertellen. Hoe concreter de hoeveelheid, hoe beter de schatting.</p>
+      </div>
+
+      <div class="card">
+        <div class="field">
+          <label for="mealText">Jouw maaltijd</label>
+          <textarea id="mealText" placeholder="Bijvoorbeeld: 250 gram Griekse yoghurt, 40 gram havermout, een handje blauwe bessen en een banaan."></textarea>
+        </div>
+        <button class="primary" id="analyseBtn" style="margin-top:12px">Analyseer mijn maaltijd</button>
+        <p class="small">Deze proefversie maakt lokaal een praktische schatting op basis van veelvoorkomende producten. Controleer de uitkomst; precieze merken en porties kunnen afwijken.</p>
+      </div>
+
+      <div class="card hidden" id="analysisCard">
+        <div class="sectionTitle">📊 Geschatte maaltijd</div>
+        <div class="analysisGrid">
+          <div class="analysisItem">Calorieën<b id="resultCalories">0 kcal</b></div>
+          <div class="analysisItem">Eiwitten<b id="resultProtein">0 g</b></div>
+          <div class="analysisItem">Koolhydraten<b id="resultCarbs">0 g</b></div>
+          <div class="analysisItem">Vetten<b id="resultFat">0 g</b></div>
+        </div>
+        <div class="advice info" id="estimateNote"></div>
+        <div class="sectionTitle" style="margin-top:16px">🤖 Coachadvies</div>
+        <div class="advice" id="foodAdvice"></div>
+        <button class="primary" id="saveMealBtn">Voeg toe aan vandaag</button>
+      </div>
+
+      <div class="card">
+        <div class="sectionTitle">Dagtotaal tot nu toe</div>
+        <div class="row"><span class="label">Calorieën</span><span class="value" id="dayCaloriesFood">0 kcal</span></div>
+        <div class="row"><span class="label">Eiwitten</span><span class="value" id="dayProteinFood">0 g</span></div>
+        <div class="row"><span class="label">Nog nodig voor eiwitdoel</span><span class="value" id="proteinLeftFood">125 g</span></div>
+        <div class="advice" id="dayAdvice"></div>
+      </div>
+
+      <div class="card" id="mealsCard">
+        <div class="sectionTitle">Vandaag geregistreerd</div>
+        <div id="mealsList" class="small">Nog geen maaltijden geregistreerd.</div>
+        <button class="secondary" id="clearMealsBtn">Wis maaltijden van vandaag</button>
+      </div>
+    </section>
+
     <section id="progressScreen" class="screen">
       <div class="card">
         <div class="sectionTitle">📈 Mijn voortgang</div>
@@ -171,46 +215,167 @@
           <label for="proteinGoal">Eiwitdoel (g)</label>
           <input id="proteinGoal" type="number" min="50" max="250" step="5" value="125" />
         </div>
+        <div class="field">
+          <label for="calorieGoal">Praktisch caloriedoel (kcal)</label>
+          <input id="calorieGoal" type="number" min="1200" max="4000" step="50" value="2000" />
+        </div>
         <div class="row"><span class="label">Dagelijkse basis</span><span class="value">Eén moment</span></div>
         <div class="row"><span class="label">Elektrolyten</span><span class="value">Sport/vasten</span></div>
-        <button class="primary" id="resetBtn" style="margin-top:14px">Wis lokale invoer</button>
+        <button class="primary" id="resetBtn" style="margin-top:14px">Wis alle lokale invoer</button>
       </div>
     </section>
 
     <nav class="nav">
       <button data-screen="todayScreen" class="active">Vandaag</button>
+      <button data-screen="foodScreen">Eten</button>
       <button data-screen="progressScreen">Voortgang</button>
       <button data-screen="settingsScreen">Instellingen</button>
     </nav>
   </main>
 
 <script>
+const todayKey = new Date().toISOString().slice(0,10);
 const defaults = {
   activity:"Wandelen 30 minuten", extra:"Krachttraining 20 minuten",
-  strategy:"Normaal eten", protein:0, proteinGoal:125,
-  basisDone:false, waterDone:false, dayDone:false
+  strategy:"Normaal eten", proteinGoal:125, calorieGoal:2000,
+  basisDone:false, waterDone:false, dayDone:false,
+  mealDate:todayKey, meals:[]
 };
 const state = {...defaults, ...JSON.parse(localStorage.getItem("dlpVitaalState") || "{}")};
+if (state.mealDate !== todayKey) {
+  state.mealDate = todayKey;
+  state.meals = [];
+}
+
+const foodDB = [
+  {terms:["griekse yoghurt","yoghurt"], serving:250, kcal:190, protein:23, carbs:9, fat:6, unit:"g"},
+  {terms:["kwark"], serving:250, kcal:150, protein:25, carbs:10, fat:1, unit:"g"},
+  {terms:["havermout"], serving:40, kcal:150, protein:5, carbs:24, fat:3, unit:"g"},
+  {terms:["blauwe bessen","bosbessen"], serving:75, kcal:43, protein:1, carbs:8, fat:0, unit:"g"},
+  {terms:["banaan"], serving:1, kcal:105, protein:1, carbs:27, fat:0, unit:"piece"},
+  {terms:["appel"], serving:1, kcal:80, protein:0, carbs:21, fat:0, unit:"piece"},
+  {terms:["peer"], serving:1, kcal:95, protein:1, carbs:25, fat:0, unit:"piece"},
+  {terms:["ei","eieren"], serving:1, kcal:78, protein:6, carbs:1, fat:5, unit:"piece"},
+  {terms:["boterham","boterhammen","brood"], serving:1, kcal:85, protein:4, carbs:15, fat:1, unit:"piece"},
+  {terms:["kaas"], serving:30, kcal:110, protein:8, carbs:0, fat:9, unit:"g"},
+  {terms:["kipfilet","kip"], serving:150, kcal:250, protein:46, carbs:0, fat:5, unit:"g"},
+  {terms:["zalm"], serving:150, kcal:310, protein:33, carbs:0, fat:19, unit:"g"},
+  {terms:["tonijn"], serving:120, kcal:140, protein:30, carbs:0, fat:1, unit:"g"},
+  {terms:["rijst"], serving:150, kcal:195, protein:4, carbs:42, fat:1, unit:"g"},
+  {terms:["aardappelen","aardappel"], serving:200, kcal:155, protein:4, carbs:34, fat:0, unit:"g"},
+  {terms:["spinazie"], serving:50, kcal:12, protein:2, carbs:1, fat:0, unit:"g"},
+  {terms:["bleekselderij","selderij"], serving:1, kcal:10, protein:0, carbs:2, fat:0, unit:"piece"},
+  {terms:["avocado"], serving:1, kcal:240, protein:3, carbs:13, fat:22, unit:"piece"},
+  {terms:["melk"], serving:250, kcal:120, protein:9, carbs:12, fat:4, unit:"ml"},
+  {terms:["eiwitpoeder","proteinepoeder","proteïnepoeder","whey"], serving:30, kcal:120, protein:24, carbs:3, fat:2, unit:"g"},
+  {terms:["noten","amandelen"], serving:30, kcal:180, protein:6, carbs:5, fat:16, unit:"g"},
+  {terms:["olijfolie","olie"], serving:10, kcal:90, protein:0, carbs:0, fat:10, unit:"g"},
+  {terms:["groenten","groente"], serving:200, kcal:70, protein:4, carbs:12, fat:1, unit:"g"}
+];
+
+let pendingMeal = null;
 
 function save() {
   localStorage.setItem("dlpVitaalState", JSON.stringify(state));
 }
 function setInput(id, value) {
   const el = document.getElementById(id);
+  if (!el) return;
   if (el.type === "checkbox") el.checked = !!value;
   else el.value = value;
 }
 function hydrate() {
-  Object.keys(defaults).forEach(k => setInput(k, state[k]));
+  ["activity","extra","proteinGoal","calorieGoal","basisDone","waterDone","dayDone"].forEach(k => setInput(k, state[k]));
 }
-function isFasting() {
-  return /vasten/i.test(state.strategy);
+function totals() {
+  return state.meals.reduce((a,m) => ({
+    kcal:a.kcal+m.kcal, protein:a.protein+m.protein, carbs:a.carbs+m.carbs, fat:a.fat+m.fat
+  }), {kcal:0, protein:0, carbs:0, fat:0});
+}
+function findQuantity(text, term, item) {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const before = new RegExp("(\\d+(?:[\\.,]\\d+)?)\\s*(gram|g|ml|stuks?|x)?\\s*(?:\\w+\\s+){0,2}" + escaped, "i");
+  const match = text.match(before);
+  if (match) {
+    const n = Number(match[1].replace(",", "."));
+    const unit = (match[2] || "").toLowerCase();
+    if (item.unit === "piece" && (!unit || unit.startsWith("stuk") || unit === "x")) return n;
+    if (item.unit !== "piece") return n / item.serving;
+  }
+  const wordNumbers = {"een":1,"één":1,"twee":2,"drie":3,"vier":4};
+  for (const [word,n] of Object.entries(wordNumbers)) {
+    const rx = new RegExp("\\b" + word + "\\s+(?:\\w+\\s+)?" + escaped, "i");
+    if (rx.test(text)) return item.unit === "piece" ? n : 1;
+  }
+  if (/handje/i.test(text) && ["blauwe bessen","bosbessen","noten","amandelen","spinazie"].includes(term)) return 1;
+  if (/stengel/i.test(text) && ["bleekselderij","selderij"].includes(term)) return 1;
+  return 1;
+}
+function analyseMeal(text) {
+  const lower = text.toLowerCase();
+  const found = [];
+  let result = {kcal:0, protein:0, carbs:0, fat:0};
+  const used = new Set();
+
+  foodDB.forEach(item => {
+    const term = item.terms.find(t => lower.includes(t));
+    if (!term || used.has(item)) return;
+    used.add(item);
+    const factor = findQuantity(lower, term, item);
+    ["kcal","protein","carbs","fat"].forEach(k => result[k] += item[k] * factor);
+    found.push(term);
+  });
+
+  Object.keys(result).forEach(k => result[k] = Math.max(0, Math.round(result[k])));
+  return {...result, found};
+}
+function foodCoach(meal, currentTotals) {
+  const afterProtein = currentTotals.protein + meal.protein;
+  const afterKcal = currentTotals.kcal + meal.kcal;
+  const proteinLeft = Math.max(0, state.proteinGoal - afterProtein);
+  const kcalLeft = Math.max(0, state.calorieGoal - afterKcal);
+
+  if (meal.found.length === 0) {
+    return "Ik herken nog te weinig producten om betrouwbaar te schatten. Voeg liefst producten én hoeveelheden toe, bijvoorbeeld ‘250 gram kwark en 40 gram havermout’.";
+  }
+  if (meal.protein >= 30) {
+    return `Goede eiwitrijke maaltijd. Daarna resteert ongeveer ${proteinLeft} g eiwit en ${kcalLeft} kcal voor de rest van de dag. Kies later vooral groenten en een normale portie eiwit.`;
+  }
+  if (meal.protein < 15) {
+    return `Deze maaltijd bevat waarschijnlijk weinig eiwit. Daarna resteert ongeveer ${proteinLeft} g. Maak je volgende maaltijd eiwitrijk, bijvoorbeeld met kwark, eieren, kip, vis of peulvruchten.`;
+  }
+  return `Prima basis. Daarna resteert ongeveer ${proteinLeft} g eiwit en ${kcalLeft} kcal. Zorg dat je volgende hoofdmaaltijd opnieuw ongeveer 30–40 g eiwit bevat.`;
+}
+function dayCoach(t) {
+  const pLeft = Math.max(0, state.proteinGoal - t.protein);
+  const kLeft = Math.max(0, state.calorieGoal - t.kcal);
+  if (state.meals.length === 0) return "Registreer je eerste maaltijd. Daarna krijg je hier advies voor de rest van de dag.";
+  if (pLeft === 0) return `Je eiwitdoel is gehaald. Je hebt binnen het ingestelde richtdoel nog ongeveer ${kLeft} kcal ruimte. Kies vooral op honger en kwaliteit.`;
+  if (pLeft > 70) return `Je hebt nog ongeveer ${pLeft} g eiwit nodig. Verdeel dat bij voorkeur over twee stevige eiwitmomenten en eventueel één kleine aanvulling.`;
+  if (pLeft > 35) return `Je hebt nog ongeveer ${pLeft} g eiwit nodig. Eén eiwitrijke hoofdmaaltijd plus een kleine aanvulling kan voldoende zijn.`;
+  return `Je bent dichtbij: nog ongeveer ${pLeft} g eiwit. Dat lukt vaak met één normale eiwitrijke maaltijd of kwark/shake.`;
+}
+function renderMeals() {
+  const list = document.getElementById("mealsList");
+  if (!state.meals.length) {
+    list.innerHTML = "Nog geen maaltijden geregistreerd.";
+    return;
+  }
+  list.innerHTML = state.meals.map((m,i) => `
+    <div class="meal">
+      <div class="mealTitle">${i+1}. ${escapeHtml(m.text)}</div>
+      <div class="mealMeta">${m.kcal} kcal · ${m.protein} g eiwit · ${m.carbs} g koolhydraten · ${m.fat} g vet</div>
+    </div>`).join("");
+}
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 }
 function render() {
   const padel = state.activity === "Padel";
   const rest = state.activity === "Rust / herstel";
-  const proteinLeft = Math.max(0, Number(state.proteinGoal) - Number(state.protein));
-  const pct = Math.min(100, Math.round((Number(state.protein) / Number(state.proteinGoal)) * 100));
+  const t = totals();
+  const proteinLeft = Math.max(0, Number(state.proteinGoal) - t.protein);
+  const pct = Math.min(100, Math.round((t.protein / Number(state.proteinGoal)) * 100));
 
   document.getElementById("advice1").textContent =
     rest ? "Kies vandaag bewust voor herstel." :
@@ -219,23 +384,34 @@ function render() {
     "Kies 30 minuten wandelen.";
 
   document.getElementById("advice2").textContent =
-    padel ? "Wandelen hoeft vandaag niet extra." :
-    state.extra !== "Geen" ? "Extra: " + state.extra + "." :
-    "Houd de dag eenvoudig en haalbaar.";
+    state.meals.length === 0 ? "Registreer je eerste maaltijd; daarna volgt voedingsadvies." :
+    dayCoach(t);
 
-  const electrolyteNeeded = padel || isFasting();
-  const el = document.getElementById("electrolytesText");
-  el.textContent = electrolyteNeeded ? "⚡ Neem vandaag elektrolyten mee." : "Geen extra elektrolyten nodig.";
-  el.className = "advice" + (electrolyteNeeded ? "" : "");
+  const electrolyteNeeded = padel;
+  document.getElementById("electrolytesText").textContent =
+    electrolyteNeeded ? "⚡ Neem vandaag elektrolyten mee." : "Geen extra elektrolyten nodig.";
 
   document.getElementById("proteinProgress").style.width = pct + "%";
   document.getElementById("proteinText").textContent =
     proteinLeft === 0 ? "Eiwitdoel gehaald ✓" : `Nog ${proteinLeft} g nodig van ${state.proteinGoal} g.`;
+  document.getElementById("todayCalories").textContent = `${t.kcal} kcal`;
+  document.getElementById("todayProtein").textContent = `${t.protein} g`;
+  document.getElementById("dayCaloriesFood").textContent = `${t.kcal} kcal`;
+  document.getElementById("dayProteinFood").textContent = `${t.protein} g`;
+  document.getElementById("proteinLeftFood").textContent = `${proteinLeft} g`;
+  document.getElementById("dayAdvice").textContent = dayCoach(t);
+  renderMeals();
+}
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("active", b.dataset.screen === id));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo({top:0, behavior:"smooth"});
 }
 function bind() {
-  ["activity","extra","strategy","protein","proteinGoal"].forEach(id => {
+  ["activity","extra","proteinGoal","calorieGoal"].forEach(id => {
     document.getElementById(id).addEventListener("change", e => {
-      state[id] = e.target.type === "number" ? Number(e.target.value) : e.target.value;
+      state[id] = Number.isNaN(Number(e.target.value)) || e.target.tagName === "SELECT" ? e.target.value : Number(e.target.value);
       save(); render();
     });
   });
@@ -244,18 +420,55 @@ function bind() {
       state[id] = e.target.checked; save(); render();
     });
   });
+  document.getElementById("analyseBtn").addEventListener("click", () => {
+    const text = document.getElementById("mealText").value.trim();
+    if (!text) {
+      alert("Typ eerst wat je hebt gegeten.");
+      return;
+    }
+    pendingMeal = {...analyseMeal(text), text};
+    const t = totals();
+    document.getElementById("resultCalories").textContent = pendingMeal.kcal + " kcal";
+    document.getElementById("resultProtein").textContent = pendingMeal.protein + " g";
+    document.getElementById("resultCarbs").textContent = pendingMeal.carbs + " g";
+    document.getElementById("resultFat").textContent = pendingMeal.fat + " g";
+    document.getElementById("estimateNote").textContent =
+      pendingMeal.found.length
+        ? "Herkend: " + pendingMeal.found.join(", ") + ". Dit blijft een praktische schatting."
+        : "Nog geen herkenbare producten gevonden.";
+    document.getElementById("foodAdvice").textContent = foodCoach(pendingMeal, t);
+    document.getElementById("analysisCard").classList.remove("hidden");
+    document.getElementById("analysisCard").scrollIntoView({behavior:"smooth", block:"start"});
+  });
+  document.getElementById("saveMealBtn").addEventListener("click", () => {
+    if (!pendingMeal || pendingMeal.found.length === 0) {
+      alert("Deze maaltijd kan nog niet zinvol worden opgeslagen. Voeg concretere producten en hoeveelheden toe.");
+      return;
+    }
+    state.meals.push({...pendingMeal, savedAt:new Date().toISOString()});
+    save();
+    pendingMeal = null;
+    document.getElementById("mealText").value = "";
+    document.getElementById("analysisCard").classList.add("hidden");
+    render();
+  });
+  document.getElementById("clearMealsBtn").addEventListener("click", () => {
+    if (confirm("Alle maaltijden van vandaag wissen?")) {
+      state.meals = [];
+      save(); render();
+    }
+  });
   document.getElementById("resetBtn").addEventListener("click", () => {
-    localStorage.removeItem("dlpVitaalState");
-    location.reload();
+    if (confirm("Alle lokale invoer wissen?")) {
+      localStorage.removeItem("dlpVitaalState");
+      location.reload();
+    }
   });
   document.querySelectorAll(".nav button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-      document.querySelectorAll(".nav button").forEach(b => b.classList.remove("active"));
-      document.getElementById(btn.dataset.screen).classList.add("active");
-      btn.classList.add("active");
-      window.scrollTo({top:0, behavior:"smooth"});
-    });
+    btn.addEventListener("click", () => showScreen(btn.dataset.screen));
+  });
+  document.querySelectorAll("[data-go]").forEach(btn => {
+    btn.addEventListener("click", () => showScreen(btn.dataset.go));
   });
 }
 document.getElementById("date").textContent = new Intl.DateTimeFormat("nl-NL", {
