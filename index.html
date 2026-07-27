@@ -141,7 +141,7 @@
       <div class="card">
         <div class="sectionTitle">⚖️ Meetcoach</div>
         <div class="advice info" id="measureAdvice"></div>
-        <div class="measureGrid">
+        <div class="card" style="background:#f8fafc;border:1px solid #dbeafe;margin-bottom:12px;"><div class="sectionTitle">📊 Laatste metingen</div><div id="lastMeasurements" class="small"></div></div><div class="measureGrid">
           <div class="measureBox">
             <span class="small">Gewicht</span>
             <strong id="weightMeasureStatus">–</strong>
@@ -515,6 +515,20 @@ function renderMeasurements() {
   document.getElementById("waistMeasureDate").textContent = dateLabel(waistNext);
 
   let advice = "Vandaag staat er geen lichaamsmeting gepland.";
+  const lm=document.getElementById("lastMeasurements");
+  if(lm){
+    let html=`<b>Gewicht</b>: ${state.lastWeight??"—"} kg`;
+    if(state.previousWeight!=null){
+      const d=(state.lastWeight-state.previousWeight).toFixed(1);
+      html+=` <span style="color:${d<0?"green":"#b45309"}">(${d} kg)</span>`;
+    }
+    html+=`<br><b>Buikomvang</b>: ${state.lastWaist??"—"} cm`;
+    if(state.previousWaist!=null){
+      const d2=(state.lastWaist-state.previousWaist).toFixed(1);
+      html+=` <span style="color:${d2<0?"green":"#b45309"}">(${d2} cm)</span>`;
+    }
+    lm.innerHTML=html;
+  }
   if (weightDue && waistDue) advice = "Vandaag zijn gewicht én buikomvang aan de beurt. Meet bij voorkeur 's ochtends vóór het ontbijt.";
   else if (weightDue) advice = "Vandaag is je vaste weegmoment. Weeg bij voorkeur na het opstaan en vóór het ontbijt.";
   else if (waistDue) advice = "Het is tijd om je buikomvang opnieuw te meten. Meet ontspannen en steeds op dezelfde plek.";
