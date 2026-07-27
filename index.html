@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.4 – Persoonlijke Coach -->
+  <!-- DLP Vitaal V0.4.1 – Persoonlijke Coach -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -146,13 +146,13 @@
             <span class="small">Gewicht</span>
             <strong id="weightMeasureStatus">–</strong>
             <span class="small" id="weightMeasureDate">–</span>
-            <button id="weightMeasuredBtn">Vandaag gewogen</button>
+            <input id="weightInput" type="number" step="0.1" placeholder="77,8"><button id="weightMeasuredBtn">Gewicht opslaan</button><div class="small" id="weightTrend"></div>
           </div>
           <div class="measureBox">
             <span class="small">Buikomvang</span>
             <strong id="waistMeasureStatus">–</strong>
             <span class="small" id="waistMeasureDate">–</span>
-            <button id="waistMeasuredBtn">Vandaag gemeten</button>
+            <input id="waistInput" type="number" step="0.5" placeholder="103"><button id="waistMeasuredBtn">Buikomvang opslaan</button><div class="small" id="waistTrend"></div>
           </div>
         </div>
       </div>
@@ -301,7 +301,7 @@ const defaults = {
   strategy:"Normaal eten", proteinGoal:125, calorieGoal:2000,
   basisDone:false, waterDone:false, dayDone:false, activityDone:false,
   weightWeekday:3, waistInterval:30,
-  lastWeightDate:"2026-07-27", lastWaistDate:"2026-07-27",
+  lastWeightDate:"2026-07-27", lastWeight:null, previousWeight:null, lastWaistDate:"2026-07-27", lastWaist:null, previousWaist:null,
   mealDate:todayKey, meals:[]
 };
 const state = {...defaults, ...JSON.parse(localStorage.getItem("dlpVitaalState") || "{}")};
@@ -519,7 +519,7 @@ function renderMeasurements() {
   else if (weightDue) advice = "Vandaag is je vaste weegmoment. Weeg bij voorkeur na het opstaan en vóór het ontbijt.";
   else if (waistDue) advice = "Het is tijd om je buikomvang opnieuw te meten. Meet ontspannen en steeds op dezelfde plek.";
   else if (weightDays === 1) advice = "Morgen is je vaste weegmoment. Probeer onder dezelfde omstandigheden te meten.";
-  document.getElementById("measureAdvice").textContent = advice;
+  document.getElementById("measureAdvice").textContent = advice; const wt=document.getElementById("weightTrend"); if(wt&&state.lastWeight!=null){wt.textContent=state.previousWeight!=null?((state.lastWeight-state.previousWeight)<0?`↓ ${Math.abs((state.lastWeight-state.previousWeight).toFixed(1))} kg`:`Δ ${(state.lastWeight-state.previousWeight).toFixed(1)} kg`):`Laatste gewicht: ${state.lastWeight} kg`;} const ws=document.getElementById("waistTrend"); if(ws&&state.lastWaist!=null){ws.textContent=`Laatste buikomvang: ${state.lastWaist} cm`;}
 }
 function runMealAnalysis() {
   const text = document.getElementById("mealText").value.trim();
@@ -604,14 +604,8 @@ function bind() {
       save(); render();
     }
   });
-  document.getElementById("weightMeasuredBtn").addEventListener("click", () => {
-    state.lastWeightDate = localDateKey();
-    save(); render();
-  });
-  document.getElementById("waistMeasuredBtn").addEventListener("click", () => {
-    state.lastWaistDate = localDateKey();
-    save(); render();
-  });
+  document.getElementById("weightMeasuredBtn").addEventListener("click",()=>{const v=parseFloat(document.getElementById("weightInput").value.replace(",", "."));if(isNaN(v)){alert("Voer eerst je gewicht in.");return;}state.previousWeight=state.lastWeight;state.lastWeight=v;state.lastWeightDate=localDateKey();save();render();});
+  document.getElementById("waistMeasuredBtn").addEventListener("click",()=>{const v=parseFloat(document.getElementById("waistInput").value.replace(",", "."));if(isNaN(v)){alert("Voer eerst je buikomvang in.");return;}state.previousWaist=state.lastWaist;state.lastWaist=v;state.lastWaistDate=localDateKey();save();render();});
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const micBtn = document.getElementById("micBtn");
