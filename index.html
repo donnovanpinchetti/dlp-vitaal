@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.4.3 – Meetcoach verfijning -->
+  <!-- DLP Vitaal V0.4.5 – stabiliteit en basisroutine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -82,7 +82,13 @@
     .measureGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .measureBox { background:var(--blue); border-radius:14px; padding:14px; }
     .measureBox strong { display:block; font-size:18px; color:var(--blueText); margin:5px 0 3px; }
-    .measureBox button { width:100%; margin-top:10px; border:1px solid #bfdbfe; border-radius:10px; background:white; padding:9px; font-weight:800; color:var(--blueText); }
+    .measureAction { display:flex; justify-content:center; margin-top:12px; }
+    .measureAction button { width:min(260px,100%); border:0; border-radius:14px; padding:13px; background:var(--navy); color:white; font-size:15px; font-weight:800; }
+    .routineGroup { margin-top:12px; }
+    .routineHeading { color:var(--muted); font-size:12px; font-weight:850; text-transform:uppercase; letter-spacing:.55px; margin:12px 0 2px; }
+    .routineProgress { font-size:13px; color:var(--muted); font-weight:800; margin-top:12px; }
+    .check.disabled { opacity:.55; }
+    .check .routineNote { display:block; color:var(--muted); font-size:12px; font-weight:500; margin-top:2px; }
     .lastMeasurements { background:#f8fafc; border:1px solid #dbeafe; border-radius:16px; padding:14px; margin-bottom:12px; }
     .lastMeasurementGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .lastMeasurementItem { background:white; border:1px solid var(--line); border-radius:13px; padding:12px; }
@@ -167,20 +173,22 @@
           </div>
         </div>
         <div class="advice measureCoach hidden" id="measurementCoach"></div>
-        <div class="sectionTitle" style="margin-top:8px">➕ Nieuwe meting</div><div class="measureGrid">
+        <div class="sectionTitle" style="margin-top:8px">➕ Nieuwe meting</div>
+        <div class="measureGrid">
           <div class="measureBox">
             <span class="small">Gewicht</span>
             <strong id="weightMeasureStatus">–</strong>
             <span class="small" id="weightMeasureDate">–</span>
-            <input id="weightInput" type="number" step="0.1" placeholder="77,8"><button id="weightMeasuredBtn">Meting opslaan</button>
+            <input id="weightInput" type="number" step="0.1" inputmode="decimal" placeholder="77,8">
           </div>
           <div class="measureBox">
             <span class="small">Buikomvang</span>
             <strong id="waistMeasureStatus">–</strong>
             <span class="small" id="waistMeasureDate">–</span>
-            <input id="waistInput" type="number" step="0.5" placeholder="103">
+            <input id="waistInput" type="number" step="0.5" inputmode="decimal" placeholder="103">
           </div>
         </div>
+        <div class="measureAction"><button id="measurementSaveBtn">Meting opslaan</button></div>
       </div>
 
       <div class="card">
@@ -193,8 +201,18 @@
       </div>
 
       <div class="card">
-        <div class="sectionTitle">💊 Basis</div>
-        <label class="check"><input type="checkbox" id="basisDone" /> Basisroutine gedaan</label>
+        <div class="sectionTitle">💊 Basisroutine</div>
+        <div class="routineGroup">
+          <div class="routineHeading">Ochtend</div>
+          <label class="check"><input type="checkbox" id="creatineDone" /><span>Creatine <span class="routineNote">5 gram</span></span></label>
+          <label class="check"><input type="checkbox" id="omegaDone" /><span>Omega 3</span></label>
+          <label class="check" id="d3Row"><input type="checkbox" id="d3Done" /><span>D3 + K2 <span class="routineNote" id="d3Note">Vandaag gepland</span></span></label>
+          <div class="routineHeading">Training</div>
+          <label class="check" id="wheyRow"><input type="checkbox" id="wheyDone" /><span>Whey <span class="routineNote" id="wheyNote">Alleen wanneer nodig</span></span></label>
+          <div class="routineHeading">Avond</div>
+          <label class="check"><input type="checkbox" id="magnesiumDone" /><span>Magnesium <span class="routineNote">2 capsules in de avond</span></span></label>
+        </div>
+        <div class="routineProgress" id="routineProgress">Basisroutine 0 van 4 voltooid</div>
         <div class="advice" id="electrolytesText"></div>
       </div>
 
@@ -325,7 +343,8 @@ const todayKey = new Date().toISOString().slice(0,10);
 const defaults = {
   activity:"Wandelen 30 minuten", extra:"Krachttraining 20 minuten",
   strategy:"Normaal eten", proteinGoal:125, calorieGoal:2000,
-  basisDone:false, waterDone:false, dayDone:false, activityDone:false,
+  basisDone:false, creatineDone:false, omegaDone:false, d3Done:false, wheyDone:false, magnesiumDone:false,
+  waterDone:false, dayDone:false, activityDone:false,
   weightWeekday:3, waistInterval:30,
   lastWeightDate:"2026-07-27", lastWeight:null, previousWeight:null, lastWaistDate:"2026-07-27", lastWaist:null, previousWaist:null,
   mealDate:todayKey, meals:[]
@@ -335,6 +354,11 @@ if (state.mealDate !== todayKey) {
   state.mealDate = todayKey;
   state.meals = [];
   state.basisDone = false;
+  state.creatineDone = false;
+  state.omegaDone = false;
+  state.d3Done = false;
+  state.wheyDone = false;
+  state.magnesiumDone = false;
   state.waterDone = false;
   state.dayDone = false;
   state.activityDone = false;
@@ -379,7 +403,8 @@ function setInput(id, value) {
 }
 function hydrate() {
   ["activity","extra","proteinGoal","calorieGoal","weightWeekday","waistInterval",
-    "basisDone","waterDone","dayDone","activityDone"].forEach(k => setInput(k, state[k]));
+    "creatineDone","omegaDone","d3Done","wheyDone","magnesiumDone",
+    "waterDone","dayDone","activityDone"].forEach(k => setInput(k, state[k]));
 }
 function totals() {
   return state.meals.reduce((a,m) => ({
@@ -497,13 +522,30 @@ function nextWaistDate() {
   next.setDate(last.getDate()+Number(state.waistInterval || 30));
   return next;
 }
+function d3ScheduledToday() {
+  const start = new Date(2026, 6, 29, 12, 0, 0);
+  const now = parseDateKey(localDateKey());
+  return Math.abs(Math.round((now - start) / 86400000)) % 2 === 0;
+}
+function wheyRecommended(t) {
+  const trained = state.activityDone && (state.activity.includes("Padel") || state.activity.includes("Krachttraining"));
+  return trained || (Number(state.proteinGoal) - t.protein >= 30 && new Date().getHours() >= 16);
+}
+function routineStatus(t) {
+  const items = [state.creatineDone, state.omegaDone, state.magnesiumDone];
+  if (d3ScheduledToday()) items.push(state.d3Done);
+  if (wheyRecommended(t)) items.push(state.wheyDone);
+  return {done:items.filter(Boolean).length, total:items.length};
+}
 function taskData(t) {
   const hour = new Date().getHours();
   const proteinDone = t.protein >= Number(state.proteinGoal);
   const hasMeal = state.meals.length > 0;
+  const routine = routineStatus(t);
+  const routineDone = routine.done === routine.total;
   return [
     {done:hasMeal, text:hasMeal ? "Eerste maaltijd geregistreerd" : (hour < 11 ? "Ontbijt registreren" : "Eerste maaltijd registreren"), sub:hasMeal ? `${t.protein} g eiwit geregistreerd` : "Dan kan de coach de rest van je dag beter sturen."},
-    {done:state.basisDone, text:"Basisroutine", sub:state.basisDone ? "Gedaan voor vandaag." : "Eén vast innamemoment."},
+    {done:routineDone, text:"Basisroutine", sub:routineDone ? "Alles voor vandaag gedaan." : `${routine.done} van ${routine.total} voltooid.`},
     {done:state.activityDone, text:state.activity, sub:state.activityDone ? "Beweging afgerond." : "Jouw gekozen hoofdactiviteit."},
     {done:proteinDone, text:"Eiwitdoel halen", sub:proteinDone ? `${state.proteinGoal} g of meer gehaald.` : `Nog ${Math.max(0, Number(state.proteinGoal)-t.protein)} g te gaan.`},
     {done:state.dayDone, text:"Dag afronden", sub:state.dayDone ? "Dag is afgerond." : (hour < 18 ? "Dit komt vanavond." : "Kijk kort terug op vandaag.")}
@@ -657,7 +699,23 @@ function render() {
 
   const electrolyteNeeded = padel;
   document.getElementById("electrolytesText").textContent =
-    electrolyteNeeded ? "⚡ Neem vandaag elektrolyten mee." : "Geen extra elektrolyten nodig.";
+    electrolyteNeeded ? "⚡ Vandaag extra elektrolyten aanbevolen." : "Geen extra elektrolyten nodig.";
+
+  const d3Due = d3ScheduledToday();
+  const d3 = document.getElementById("d3Done");
+  d3.disabled = !d3Due;
+  if (!d3Due) state.d3Done = false;
+  document.getElementById("d3Row").classList.toggle("disabled", !d3Due);
+  document.getElementById("d3Note").textContent = d3Due ? "Vandaag gepland" : "Morgen weer gepland";
+  const wheyDue = wheyRecommended(t);
+  const whey = document.getElementById("wheyDone");
+  whey.disabled = !wheyDue;
+  if (!wheyDue) state.wheyDone = false;
+  document.getElementById("wheyRow").classList.toggle("disabled", !wheyDue);
+  document.getElementById("wheyNote").textContent = wheyDue ? "Vandaag aanbevolen" : "Vandaag niet nodig";
+  const routine = routineStatus(t);
+  state.basisDone = routine.done === routine.total;
+  document.getElementById("routineProgress").textContent = `Basisroutine ${routine.done} van ${routine.total} voltooid`;
 
   document.getElementById("proteinProgress").style.width = pct + "%";
   document.getElementById("proteinText").textContent =
@@ -683,7 +741,7 @@ function bind() {
       save(); render();
     });
   });
-  ["basisDone","waterDone","dayDone","activityDone"].forEach(id => {
+  ["creatineDone","omegaDone","d3Done","wheyDone","magnesiumDone","waterDone","dayDone","activityDone"].forEach(id => {
     document.getElementById(id).addEventListener("change", e => {
       state[id] = e.target.checked; save(); render();
     });
@@ -707,8 +765,31 @@ function bind() {
       save(); render();
     }
   });
-  document.getElementById("weightMeasuredBtn").addEventListener("click",()=>{const v=parseFloat(document.getElementById("weightInput").value.replace(",", "."));if(isNaN(v)){alert("Voer eerst je gewicht in.");return;}state.previousWeight=state.lastWeight;state.lastWeight=v;state.lastWeightDate=localDateKey();save();render();});
-  document.getElementById("waistMeasuredBtn").addEventListener("click",()=>{const v=parseFloat(document.getElementById("waistInput").value.replace(",", "."));if(isNaN(v)){alert("Voer eerst je buikomvang in.");return;}state.previousWaist=state.lastWaist;state.lastWaist=v;state.lastWaistDate=localDateKey();save();render();});
+  document.getElementById("measurementSaveBtn").addEventListener("click", () => {
+    const weightText = document.getElementById("weightInput").value.trim().replace(",", ".");
+    const waistText = document.getElementById("waistInput").value.trim().replace(",", ".");
+    if (!weightText && !waistText) {
+      alert("Vul eerst je gewicht, buikomvang of allebei in.");
+      return;
+    }
+    if (weightText) {
+      const v = parseFloat(weightText);
+      if (isNaN(v) || v < 40 || v > 250) { alert("Controleer het ingevoerde gewicht."); return; }
+      state.previousWeight = state.lastWeight;
+      state.lastWeight = v;
+      state.lastWeightDate = localDateKey();
+    }
+    if (waistText) {
+      const v = parseFloat(waistText);
+      if (isNaN(v) || v < 50 || v > 200) { alert("Controleer de ingevoerde buikomvang."); return; }
+      state.previousWaist = state.lastWaist;
+      state.lastWaist = v;
+      state.lastWaistDate = localDateKey();
+    }
+    document.getElementById("weightInput").value = "";
+    document.getElementById("waistInput").value = "";
+    save(); render();
+  });
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const micBtn = document.getElementById("micBtn");
