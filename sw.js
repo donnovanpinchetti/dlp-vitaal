@@ -1,4 +1,4 @@
-const CACHE = "dlp-vitaal-v0-5-0";
+const CACHE = "dlp-vitaal-v0-5-2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./sw.js"];
 
 self.addEventListener("install", event => {

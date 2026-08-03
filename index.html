@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.5.0 – stabiliteit en basisroutine -->
+  <!-- DLP Vitaal V0.5.2 – stabiliteit en basisroutine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -436,7 +436,7 @@ const defaults = {
   activity:"Wandelen 30 minuten", extra:"Krachttraining 20 minuten",
   strategy:"Normaal eten", proteinGoal:125, calorieGoal:2000,
   basisDone:false, creatineDone:false, omegaDone:false, d3Done:false, wheyDone:false, magnesiumDone:false,
-  waterDone:false, dayDone:false, activityDone:false,
+  waterDone:false, waterMl:0, waterGoalMl:2000, dayDone:false, activityDone:false,
   weightWeekday:3, waistInterval:30,
   lastWeightDate:"2026-07-27", lastWeight:null, previousWeight:null, lastWaistDate:"2026-07-27", lastWaist:null, previousWaist:null,
   mealDate:todayKey, meals:[]
@@ -453,6 +453,7 @@ if (state.mealDate !== todayKey) {
   state.magnesiumDone = false;
   state.waterDone = false;
   state.waterMl = 0;
+  state.waterGoalMl = 2000;
   state.dayDone = false;
   state.activityDone = false;
 }
@@ -810,6 +811,7 @@ function render() {
 
   renderTasks(t);
   renderMeasurements();
+  renderWater();
 
   const electrolyteNeeded = padel;
   document.getElementById("electrolytesText").textContent =
