@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-title" content="DLP Vitaal" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>DLP Vitaal V0.8.2</title>
-  <!-- DLP Vitaal V0.8.2 – Voedingsengine -->
+  <title>DLP Vitaal V0.8.2.1</title>
+  <!-- DLP Vitaal V0.8.2.1 – Voedingsengine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -634,9 +634,10 @@ if (state.mealDate !== todayKey) {
 }
 
 const baseFoodDB = [
-  {id:"speltbroodje", name:"speltbroodje", terms:["speltbroodje","meergranen speltbroodje","meergranenbroodje","volkoren broodje","broodje"], serving:1, unit:"piece", kcal:190, protein:8, carbs:35, fat:2, fiber:5, countWords:["broodjes","broodje"]},
+  {id:"speltbroodje", name:"speltbroodje", terms:["meergranen speltbroodje","speltbroodje","meergranenbroodje","volkoren broodje"], serving:1, unit:"piece", kcal:190, protein:8, carbs:35, fat:2, fiber:5, countWords:["speltbroodjes","speltbroodje","broodjes","broodje"]},
+  {id:"whitehardroll", name:"wit hard bolletje", terms:["wit hard bolletje","wit hard broodje","hard wit bolletje","hard wit broodje","wit bolletje","witte bol","hard bolletje","hard broodje","bolletje"], serving:1, unit:"piece", kcal:145, protein:5, carbs:28, fat:1.5, fiber:2, countWords:["bolletjes","bolletje","broodjes","broodje","bollen","bol"]},
   {id:"linzenwafel", name:"linzenwafel", terms:["linzenwafels","linzewafels","linzenwafel","linzewafel"], serving:1, unit:"piece", kcal:35, protein:2, carbs:5.5, fat:0.7, fiber:1.4, countWords:["linzenwafels","linzewafels","linzenwafel","linzewafel"]},
-  {id:"beemster", name:"Beemster kaas", terms:["beemster jong belegen","beemster belegen","beemster","plakken kaas","plak kaas"], serving:1, unit:"piece", kcal:90, protein:6.3, carbs:0, fat:7.5, fiber:0, countWords:["plakken","plak"]},
+  {id:"beemster", name:"Beemster kaas", terms:["beemster chili","beemster jong belegen","beemster belegen","beemster","plakken kaas","plakjes kaas","plak kaas","plakje kaas"], serving:1, unit:"piece", kcal:90, protein:6.3, carbs:0, fat:7.5, fiber:0, countWords:["plakken","plakjes","plak","plakje"]},
   {id:"cheese", name:"kaas", terms:["kaas"], serving:1, unit:"piece", kcal:90, protein:6.3, carbs:0, fat:7.5, fiber:0, countWords:["plakken","plak"]},
   {id:"bread", name:"volkoren boterham", terms:["boterhammen","boterham","sneetjes brood","snee brood","brood"], serving:1, unit:"piece", kcal:85, protein:4, carbs:15, fat:1, fiber:2.3, countWords:["boterhammen","boterham","sneetjes","snee"]},
   {id:"greekyoghurt", name:"Griekse yoghurt", terms:["griekse yoghurt"], serving:250, unit:"g", kcal:190, protein:23, carbs:9, fat:6, fiber:0},
@@ -745,6 +746,18 @@ function analyseMeal(text) {
   Object.keys(result).forEach(k=>result[k]=Math.max(0,Math.round(result[k]*10)/10));
   return {...result,found:matches.map(x=>x.name),breakdown:matches,confidence:matches.length?Math.round(matches.filter(x=>x.exact).length/matches.length*100):0};
 }
+// Herbereken eerder opgeslagen maaltijden wanneer de voedingsengine is vernieuwd.
+// Zo blijven oude, onjuiste schattingen niet in Vandaag geregistreerd staan.
+const nutritionEngineVersion = "0.8.2.1";
+if (state.nutritionEngineVersion !== nutritionEngineVersion) {
+  state.meals = (Array.isArray(state.meals) ? state.meals : []).map(meal => {
+    if (!meal || !meal.text) return meal;
+    return {...meal, ...analyseMeal(meal.text), text:meal.text};
+  });
+  state.nutritionEngineVersion = nutritionEngineVersion;
+  save();
+}
+
 function foodCoach(meal, currentTotals) {
   const afterProtein = currentTotals.protein + meal.protein;
   const afterKcal = currentTotals.kcal + meal.kcal;
