@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.7.0 – stabiliteit en basisroutine -->
+  <!-- DLP Vitaal V0.7.1 – stabiliteit en basisroutine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -91,6 +91,11 @@
     .modeBadge { display:inline-block; padding:6px 10px; border-radius:999px; background:var(--blue); color:var(--blueText); font-size:12px; font-weight:850; }
     .suggestions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
     .suggestionChip { border:1px solid var(--line); background:white; color:var(--navy); border-radius:999px; padding:8px 11px; font-size:13px; font-weight:750; }
+    .selectedIngredients { margin-top:12px; padding:12px; border:1px solid var(--line); border-radius:14px; background:#f8fafc; }
+    .selectedIngredientsTitle { font-size:12px; font-weight:850; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+    .selectedIngredientList { display:flex; flex-wrap:wrap; gap:8px; }
+    .selectedIngredient { display:inline-flex; align-items:center; gap:7px; border-radius:999px; background:var(--green); color:var(--greenText); padding:8px 10px; font-size:13px; font-weight:800; }
+    .selectedIngredient button { border:0; background:transparent; color:var(--greenText); font-weight:900; padding:0; }
     .recipeGrid { display:grid; gap:10px; margin-top:10px; }
     .recipeCard { border:1px solid var(--line); border-radius:14px; padding:12px; background:#fff; }
     .recipeName { font-weight:850; margin-bottom:5px; }
@@ -363,6 +368,12 @@
           </div>
           <div class="small" id="speechStatus" style="margin-top:7px">Typ losse ingrediënten of spreek je maaltijd in.</div>
           <div class="suggestions" id="mealSuggestions"></div>
+          <div class="selectedIngredients">
+            <div class="selectedIngredientsTitle">Gekozen ingrediënten</div>
+            <div class="selectedIngredientList" id="selectedIngredientList">
+              <span class="small">Nog niets gekozen.</span>
+            </div>
+          </div>
         </div>
         <button class="primary" id="analyseBtn" style="margin-top:12px">Maak er een maaltijd van</button>
         <div class="inlineButtons">
@@ -806,30 +817,101 @@ const suggestionTerms = [
   "kipfilet","zalm","tonijn","rijst","aardappelen"
 ];
 
+function getSelectedIngredients() {
+  const input = document.getElementById("mealText");
+  if (!input) return [];
+  return input.value
+    .split(",")
+    .map(part => part.trim())
+    .filter(Boolean);
+}
+
+function setSelectedIngredients(items) {
+  const input = document.getElementById("mealText");
+  if (!input) return;
+  input.value = items.join(", ");
+}
+
+function renderSelectedIngredients() {
+  const box = document.getElementById("selectedIngredientList");
+  if (!box) return;
+  const selected = getSelectedIngredients();
+
+  if (!selected.length) {
+    box.innerHTML = '<span class="small">Nog niets gekozen.</span>';
+    return;
+  }
+
+  box.innerHTML = selected.map((item, index) => `
+    <span class="selectedIngredient">
+      ${escapeHtml(item)}
+      <button type="button" data-remove-ingredient="${index}" aria-label="Verwijder ${escapeHtml(item)}">×</button>
+    </span>
+  `).join("");
+
+  box.querySelectorAll("[data-remove-ingredient]").forEach(button => {
+    button.addEventListener("click", () => {
+      const items = getSelectedIngredients();
+      items.splice(Number(button.dataset.removeIngredient), 1);
+      setSelectedIngredients(items);
+      updateMealSuggestions();
+    });
+  });
+}
+
 function updateMealSuggestions() {
   const input = document.getElementById("mealText");
   const box = document.getElementById("mealSuggestions");
   if (!input || !box) return;
 
-  const text = input.value.toLowerCase();
-  const lastPart = text.split(",").pop().trim();
-  const matches = suggestionTerms
-    .filter(term => !text.includes(term))
-    .filter(term => !lastPart || term.startsWith(lastPart) || term.includes(lastPart))
-    .slice(0, 8);
+  const selected = getSelectedIngredients().map(x => x.toLowerCase());
+  const raw = input.value;
+  const lastPart = raw.split(",").pop().trim().toLowerCase();
 
-  box.innerHTML = matches.map(term =>
+  let matches = suggestionTerms.filter(term => !selected.includes(term.toLowerCase()));
+
+  // Als de gebruiker aan het typen is na de laatste komma, filteren we daarop.
+  if (lastPart && !selected.includes(lastPart)) {
+    matches = matches.filter(term =>
+      term.toLowerCase().startsWith(lastPart) ||
+      term.toLowerCase().includes(lastPart)
+    );
+  }
+
+  // Toon altijd voldoende vervolgmogelijkheden.
+  if (!matches.length || (selected.includes(lastPart) && matches.length < 4)) {
+    matches = suggestionTerms.filter(term => !selected.includes(term.toLowerCase()));
+  }
+
+  box.innerHTML = matches.slice(0, 10).map(term =>
     `<button type="button" class="suggestionChip" data-suggestion="${term}">+ ${term}</button>`
   ).join("");
 
   box.querySelectorAll("[data-suggestion]").forEach(button => {
-    button.addEventListener("click", () => {
-      const current = input.value.trim().replace(/,\s*$/, "");
-      input.value = current ? `${current}, ${button.dataset.suggestion}` : button.dataset.suggestion;
+    button.addEventListener("click", event => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const chosen = button.dataset.suggestion;
+      const items = getSelectedIngredients();
+
+      // Vervang een onvolledig laatste zoekwoord door het gekozen ingrediënt.
+      const last = items.length ? items[items.length - 1] : "";
+      const lastLower = last.toLowerCase();
+      const isPartial = last && !suggestionTerms.includes(lastLower);
+
+      if (isPartial) {
+        items[items.length - 1] = chosen;
+      } else if (!items.map(x => x.toLowerCase()).includes(chosen.toLowerCase())) {
+        items.push(chosen);
+      }
+
+      setSelectedIngredients(items);
       updateMealSuggestions();
-      input.focus();
     });
   });
+
+  renderSelectedIngredients();
 }
 
 function renderRecipes() {
