@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-title" content="DLP Vitaal" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.8.0 – stabiliteit en basisroutine -->
+  <title>DLP Vitaal V0.8.1</title>
+  <!-- DLP Vitaal V0.8.1 – Trainingscoach -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -142,6 +142,14 @@
     .changeNeutral { color:var(--muted); font-weight:800; }
     .changeAttention { color:#c2410c; font-weight:800; }
     .measureCoach { margin:0 0 12px; }
+    .trainingCoach { border:1px solid #bfdbfe; background:linear-gradient(180deg,#eff6ff 0%,#ffffff 100%); border-radius:16px; padding:14px; margin-top:14px; }
+    .trainingGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .trainingImpact { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+    .trainingImpactItem { background:white; border:1px solid var(--line); border-radius:12px; padding:10px; }
+    .trainingImpactItem span { display:block; color:var(--muted); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.35px; }
+    .trainingImpactItem b { display:block; margin-top:4px; font-size:15px; }
+    .trainingCoachMessage { margin-top:12px; }
+    .activitySource { margin-top:10px; color:var(--muted); font-size:12px; text-align:center; }
     .micRow { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:stretch; }
     .micButton { width:52px; border:0; border-radius:12px; background:var(--navy); color:white; font-size:22px; }
     .micButton.listening { animation:pulse 1s infinite; }
@@ -225,30 +233,58 @@
         <div class="small" id="nextStepText"></div>
         <div id="taskList"></div>
 
-        <div class="field">
-          <label for="activity">Hoofdactiviteit</label>
-          <select id="activity">
-            <option>Wandelen 30 minuten</option>
-            <option>Padel</option>
-            <option>Krachttraining 20 minuten</option>
-            <option>Fietsen</option>
-            <option>Rust / herstel</option>
-            <option>Anders</option>
-          </select>
-        </div>
+        <div class="trainingCoach">
+          <div style="font-weight:850;margin-bottom:4px">🏃 Trainingscoach</div>
+          <div class="small">Kies wat je vandaag doet. De coach past je doelen en hersteladvies direct aan.</div>
 
-        <div class="field">
-          <label for="extra">Extra activiteit</label>
-          <select id="extra">
-            <option>Krachttraining 20 minuten</option>
-            <option>Geen</option>
-            <option>Wandelen 30 minuten</option>
-            <option>Mobiliteit / rekken</option>
-            <option>Rust / herstel</option>
-            <option>Anders</option>
-          </select>
+          <div class="field">
+            <label for="activity">Activiteit</label>
+            <select id="activity">
+              <option>Rustdag</option>
+              <option>Wandelen</option>
+              <option>Krachttraining</option>
+              <option>Padel</option>
+              <option>Fietsen</option>
+              <option>Anders</option>
+            </select>
+          </div>
+
+          <div id="trainingDetails">
+            <div class="trainingGrid">
+              <div class="field">
+                <label for="activityDuration">Duur</label>
+                <select id="activityDuration">
+                  <option value="30">30 minuten</option>
+                  <option value="60">60 minuten</option>
+                  <option value="90">90 minuten</option>
+                  <option value="120">120 minuten</option>
+                  <option value="other">Anders</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="activityIntensity">Intensiteit</label>
+                <select id="activityIntensity">
+                  <option>Rustig</option>
+                  <option>Normaal</option>
+                  <option>Intensief</option>
+                </select>
+              </div>
+            </div>
+            <div class="field hidden" id="customDurationField">
+              <label for="customDuration">Aantal minuten</label>
+              <input id="customDuration" type="number" min="5" max="360" step="5" value="45" />
+            </div>
+            <div class="field hidden" id="customActivityField">
+              <label for="customActivity">Welke activiteit?</label>
+              <input id="customActivity" type="text" maxlength="50" placeholder="Bijvoorbeeld zwemmen" style="width:100%;border:1px solid var(--orangeLine);background:var(--orange);color:var(--navy);border-radius:12px;padding:12px 13px;font-size:16px;font-weight:650;font-family:inherit" />
+            </div>
+          </div>
+
+          <div class="trainingImpact" id="trainingImpact"></div>
+          <div class="advice info trainingCoachMessage" id="trainingCoachMessage"></div>
+          <div class="activitySource">Invoer: handmatig · later vervangbaar door Apple Health</div>
         </div>
-        <label class="check"><input type="checkbox" id="activityDone" /> Geplande beweging gedaan</label>
+        <label class="check"><input type="checkbox" id="activityDone" /> Training / beweging gedaan</label>
       </div>
 
       <div class="card">
@@ -533,7 +569,7 @@ window.addEventListener("error", event => {
 });
 const todayKey = new Date().toISOString().slice(0,10);
 const defaults = {
-  activity:"Wandelen 30 minuten", extra:"Krachttraining 20 minuten",
+  activity:"Wandelen", activityDuration:"30", customDuration:45, activityIntensity:"Normaal", customActivity:"", activitySource:"manual", extra:"Geen",
   strategy:"Normale eetdag", fastingStart:null, proteinGoal:125, calorieGoal:2000,
   basisDone:false, creatineDone:false, omegaDone:false, d3Done:false, wheyDone:false, magnesiumDone:false,
   waterDone:false, waterMl:0, waterGoalMl:2000, dayDone:false, activityDone:false,
@@ -542,6 +578,12 @@ const defaults = {
   mealDate:todayKey, meals:[], recipes:[{"name": "Blauwe-bessen herstelshake", "text": "150 gram blauwe bessen, 1 banaan, 30 gram whey, sap van een halve citroen, kaneel en 250 ml water"}, {"name": "Eenvoudige eiwitshake", "text": "30 gram whey, 1 banaan en 250 ml water"}, {"name": "Havermout-bessen ontbijt", "text": "40 gram havermout, 250 gram yoghurt, 75 gram blauwe bessen en kaneel"}]
 };
 const state = {...defaults, ...JSON.parse(localStorage.getItem("dlpVitaalState") || "{}")};
+const legacyActivities = {
+  "Wandelen 30 minuten":"Wandelen", "Krachttraining 20 minuten":"Krachttraining",
+  "Rust / herstel":"Rustdag", "Anders…":"Anders"
+};
+if (legacyActivities[state.activity]) state.activity = legacyActivities[state.activity];
+if (!["Rustdag","Wandelen","Krachttraining","Padel","Fietsen","Anders"].includes(state.activity)) state.activity = "Wandelen";
 if (state.mealDate !== todayKey) {
   state.mealDate = todayKey;
   state.meals = [];
@@ -556,6 +598,7 @@ if (state.mealDate !== todayKey) {
   state.waterGoalMl = 2000;
   state.dayDone = false;
   state.activityDone = false;
+  state.activitySource = "manual";
 }
 
 const foodDB = [
@@ -596,7 +639,7 @@ function setInput(id, value) {
   else el.value = value;
 }
 function hydrate() {
-  ["activity","extra","strategy","proteinGoal","calorieGoal","weightWeekday","waistInterval",
+  ["activity","activityDuration","activityIntensity","customDuration","customActivity","extra","strategy","proteinGoal","calorieGoal","weightWeekday","waistInterval",
     "creatineDone","omegaDone","d3Done","wheyDone","magnesiumDone",
     "dayDone","activityDone"].forEach(k => setInput(k, state[k]));
 }
@@ -645,7 +688,7 @@ function analyseMeal(text) {
 function foodCoach(meal, currentTotals) {
   const afterProtein = currentTotals.protein + meal.protein;
   const afterKcal = currentTotals.kcal + meal.kcal;
-  const proteinLeft = Math.max(0, state.proteinGoal - afterProtein);
+  const proteinLeft = Math.max(0, effectiveProteinGoal() - afterProtein);
   const kcalLeft = Math.max(0, state.calorieGoal - afterKcal);
 
   if (meal.found.length === 0) {
@@ -660,7 +703,7 @@ function foodCoach(meal, currentTotals) {
   return `Prima basis. Daarna resteert ongeveer ${proteinLeft} g eiwit en ${kcalLeft} kcal. Zorg dat je volgende hoofdmaaltijd opnieuw ongeveer 30–40 g eiwit bevat.`;
 }
 function dayCoach(t) {
-  const pLeft = Math.max(0, state.proteinGoal - t.protein);
+  const pLeft = Math.max(0, effectiveProteinGoal() - t.protein);
   const kLeft = Math.max(0, state.calorieGoal - t.kcal);
   if (state.meals.length === 0) return "Registreer je eerste maaltijd. Daarna krijg je hier advies voor de rest van de dag.";
   if (pLeft === 0) return `Je eiwitdoel is gehaald. Je hebt binnen het ingestelde richtdoel nog ongeveer ${kLeft} kcal ruimte. Kies vooral op honger en kwaliteit.`;
@@ -721,10 +764,63 @@ function d3ScheduledToday() {
   const now = parseDateKey(localDateKey());
   return Math.abs(Math.round((now - start) / 86400000)) % 2 === 0;
 }
+function trainingProfile() {
+  const activity = state.activity || "Rustdag";
+  const duration = state.activityDuration === "other" ? Number(state.customDuration || 45) : Number(state.activityDuration || 30);
+  const intensity = state.activityIntensity || "Normaal";
+  const active = activity !== "Rustdag";
+  const intensityFactor = intensity === "Intensief" ? 1.25 : intensity === "Rustig" ? 0.75 : 1;
+  let waterExtra = 0;
+  let proteinExtra = 0;
+  if (active) {
+    waterExtra = Math.round((duration / 30) * 250 * intensityFactor / 50) * 50;
+    if (["Padel","Krachttraining"].includes(activity)) proteinExtra = duration >= 90 ? 20 : duration >= 60 ? 15 : 10;
+    else if (["Fietsen","Anders"].includes(activity) && duration >= 60) proteinExtra = intensity === "Intensief" ? 15 : 10;
+    else if (activity === "Wandelen" && duration >= 90) proteinExtra = 5;
+  }
+  const electrolytes = active && (duration >= 60 || intensity === "Intensief") || isLongFast();
+  const recoveryShake = !isLongFast() && active && (["Padel","Krachttraining"].includes(activity) || intensity === "Intensief") && duration >= 45;
+  const magnesium = active && (duration >= 60 || intensity === "Intensief");
+  return {activity, duration, intensity, active, waterExtra, proteinExtra, electrolytes, recoveryShake, magnesium};
+}
+function effectiveWaterGoal() { return Math.max(250, Number(isLongFast() ? 2500 : (state.waterGoalMl || 2000)) + trainingProfile().waterExtra); }
+function effectiveProteinGoal() { return Math.max(0, Number(state.proteinGoal || 125) + trainingProfile().proteinExtra); }
+function activityLabel() {
+  const p = trainingProfile();
+  if (!p.active) return "Rustdag";
+  const name = p.activity === "Anders" && state.customActivity ? state.customActivity : p.activity;
+  return `${name} · ${p.duration} min · ${p.intensity.toLowerCase()}`;
+}
+function renderTrainingCoach() {
+  const p = trainingProfile();
+  const details = document.getElementById("trainingDetails");
+  const customDuration = document.getElementById("customDurationField");
+  const customActivity = document.getElementById("customActivityField");
+  details.classList.toggle("hidden", !p.active);
+  customDuration.classList.toggle("hidden", state.activityDuration !== "other" || !p.active);
+  customActivity.classList.toggle("hidden", state.activity !== "Anders");
+  const impact = document.getElementById("trainingImpact");
+  impact.innerHTML = p.active ? `
+    <div class="trainingImpactItem"><span>Waterdoel</span><b>+${p.waterExtra} ml</b></div>
+    <div class="trainingImpactItem"><span>Eiwitdoel</span><b>+${p.proteinExtra} g</b></div>
+    <div class="trainingImpactItem"><span>Elektrolyten</span><b>${p.electrolytes ? "Aanbevolen" : "Niet nodig"}</b></div>
+    <div class="trainingImpactItem"><span>Herstelshake</span><b>${p.recoveryShake ? "Aanbevolen" : "Optioneel"}</b></div>` : `
+    <div class="trainingImpactItem"><span>Focus</span><b>Herstel</b></div>
+    <div class="trainingImpactItem"><span>Doelen</span><b>Basisdoelen</b></div>`;
+  let message = "Rustdag: houd je basisdoelen aan en geef herstel prioriteit.";
+  if (p.active) {
+    message = `${activityLabel()}. Drink vandaag ${effectiveWaterGoal()} ml en mik op ${effectiveProteinGoal()} g eiwit.`;
+    if (p.electrolytes) message += " Neem elektrolyten rond de training.";
+    if (p.recoveryShake) message += " Plan na afloop een herstelshake.";
+    if (p.magnesium) message += " Magnesium blijft vanavond belangrijk.";
+  }
+  document.getElementById("trainingCoachMessage").textContent = message;
+}
+
 function wheyRecommended(t) {
   if (isLongFast()) return false;
-  const trained = state.activityDone && (state.activity.includes("Padel") || state.activity.includes("Krachttraining"));
-  return trained || (Number(state.proteinGoal) - t.protein >= 30 && new Date().getHours() >= 16);
+  const trained = state.activityDone && trainingProfile().recoveryShake;
+  return trained || (effectiveProteinGoal() - t.protein >= 30 && new Date().getHours() >= 16);
 }
 function routineStatus(t) {
   const items = [state.creatineDone, state.omegaDone, state.magnesiumDone];
@@ -734,15 +830,15 @@ function routineStatus(t) {
 }
 function taskData(t) {
   const hour = new Date().getHours();
-  const proteinDone = t.protein >= Number(state.proteinGoal);
+  const proteinDone = t.protein >= effectiveProteinGoal();
   const hasMeal = state.meals.length > 0;
   const routine = routineStatus(t);
   const routineDone = routine.done === routine.total;
   return [
     {done:hasMeal, text:hasMeal ? "Eerste maaltijd geregistreerd" : (hour < 11 ? "Ontbijt registreren" : "Eerste maaltijd registreren"), sub:hasMeal ? `${t.protein} g eiwit geregistreerd` : "Dan kan de coach de rest van je dag beter sturen."},
     {done:routineDone, text:"Basisroutine", sub:routineDone ? "Alles voor vandaag gedaan." : `${routine.done} van ${routine.total} voltooid.`},
-    {done:state.activityDone, text:state.activity, sub:state.activityDone ? "Beweging afgerond." : "Jouw gekozen hoofdactiviteit."},
-    {done:proteinDone, text:"Eiwitdoel halen", sub:proteinDone ? `${state.proteinGoal} g of meer gehaald.` : `Nog ${Math.max(0, Number(state.proteinGoal)-t.protein)} g te gaan.`},
+    {done:state.activityDone, text:activityLabel(), sub:state.activityDone ? "Beweging afgerond." : "Jouw gekozen hoofdactiviteit."},
+    {done:proteinDone, text:"Eiwitdoel halen", sub:proteinDone ? `${effectiveProteinGoal()} g of meer gehaald.` : `Nog ${Math.max(0, effectiveProteinGoal()-t.protein)} g te gaan.`},
     {done:state.dayDone, text:"Dag afronden", sub:state.dayDone ? "Dag is afgerond." : (hour < 18 ? "Dit komt vanavond." : "Kijk kort terug op vandaag.")}
   ];
 }
@@ -1040,7 +1136,7 @@ function runMealAnalysis() {
 
 function renderWater() {
   const ml = Math.max(0, Number(state.waterMl || 0));
-  const goal = Math.max(250, Number(isLongFast() ? 2500 : (state.waterGoalMl || 2000)));
+  const goal = effectiveWaterGoal();
   const glasses = Math.round(ml / 250);
   const goalGlasses = Math.round(goal / 250);
   const filled = Math.min(goalGlasses, glasses);
@@ -1143,7 +1239,7 @@ function renderFoodMode() {
 function dayCoachPriority(t) {
   const waterMl = Number(state.waterMl || 0);
   const routine = routineStatus(t);
-  const proteinLeft = Math.max(0, Number(state.proteinGoal) - t.protein);
+  const proteinLeft = Math.max(0, effectiveProteinGoal() - t.protein);
   const hour = new Date().getHours();
 
   if (waterMl < 250) return "💧 Drink nu je eerste glas water.";
@@ -1153,11 +1249,12 @@ function dayCoachPriority(t) {
   if (!isLongFast() && state.meals.length === 0 && !(isIntermittentFast() && hour < 12)) {
     return "🍽️ Registreer je eerste maaltijd zodat de coach kan meedenken.";
   }
-  if (!state.activityDone && hour >= 14) return `🏃 Jouw geplande activiteit is: ${state.activity}.`;
+  if (!state.activityDone && trainingProfile().active && hour >= 14) return `🏃 Tijd voor ${activityLabel()}.`;
   if (proteinLeft > 35 && hour >= 16 && !isLongFast()) return `🥤 Je hebt nog ongeveer ${proteinLeft} g eiwit nodig.`;
-  if (wheyRecommended(t) && !state.wheyDone) return "🥤 Neem na je training je whey-shake.";
-  if (!state.magnesiumDone && hour >= 20) return "🌙 Neem vanavond je magnesium.";
-  if (waterMl < Number(state.waterGoalMl || 2000)) return "💧 Je bent goed op weg; voeg nog een glas water toe.";
+  if (state.activityDone && trainingProfile().electrolytes && Number(state.waterMl || 0) < effectiveWaterGoal() - 250) return "⚡ Vul na je training water en elektrolyten aan.";
+  if (wheyRecommended(t) && !state.wheyDone) return "🥤 Neem nu je herstelshake na de training.";
+  if (!state.magnesiumDone && (hour >= 20 || (state.activityDone && trainingProfile().magnesium))) return "🌙 Neem vanavond je magnesium voor herstel.";
+  if (waterMl < effectiveWaterGoal()) return "💧 Je bent goed op weg; voeg nog een glas water toe.";
   if (!state.dayDone && hour >= 20) return "✅ Rond je dag kort af.";
   return "Alles loopt goed. Houd je huidige ritme vast.";
 }
@@ -1165,8 +1262,8 @@ function dayCoachPriority(t) {
 function calculateDayScore(t) {
   let score = 0;
   const routine = routineStatus(t);
-  const waterGoal = Number(state.waterGoalMl || 2000);
-  const proteinGoal = Number(state.proteinGoal || 125);
+  const waterGoal = effectiveWaterGoal();
+  const proteinGoal = effectiveProteinGoal();
 
   score += Math.min(20, Math.round((Number(state.waterMl || 0) / waterGoal) * 20));
   score += Math.min(20, Math.round((t.protein / proteinGoal) * 20));
@@ -1181,33 +1278,33 @@ function calculateDayScore(t) {
 function renderDayCoach(t) {
   const routine = routineStatus(t);
   const waterGlasses = Math.round(Number(state.waterMl || 0) / 250);
-  const waterGoalGlasses = Math.round(Number(state.waterGoalMl || 2000) / 250);
+  const waterGoalGlasses = Math.round(effectiveWaterGoal() / 250);
   const openRoutine = Math.max(0, routine.total - routine.done);
 
   document.getElementById("dayScoreValue").textContent = calculateDayScore(t);
   document.getElementById("coachDayType").textContent = state.strategy;
-  document.getElementById("coachActivity").textContent = state.activity.replace(" 30 minuten","").replace(" 20 minuten","");
+  document.getElementById("coachActivity").textContent = activityLabel();
   document.getElementById("coachWater").textContent = `${waterGlasses} / ${waterGoalGlasses}`;
-  document.getElementById("coachProtein").textContent = `${t.protein} / ${state.proteinGoal} g`;
+  document.getElementById("coachProtein").textContent = `${t.protein} / ${effectiveProteinGoal()} g`;
   document.getElementById("coachRoutine").textContent = openRoutine === 0 ? "Compleet" : `${openRoutine} open`;
   document.getElementById("coachMeals").textContent = isLongFast() ? "Vastendag" : String(state.meals.length);
   document.getElementById("coachPriorityText").textContent = dayCoachPriority(t);
 }
 
 function render() {
-  const padel = state.activity === "Padel";
-  const rest = state.activity === "Rust / herstel";
+  const training = trainingProfile();
   const t = totals();
-  const proteinLeft = Math.max(0, Number(state.proteinGoal) - t.protein);
-  const pct = Math.min(100, Math.round((t.protein / Number(state.proteinGoal)) * 100));
+  const proteinLeft = Math.max(0, effectiveProteinGoal() - t.protein);
+  const pct = Math.min(100, Math.round((t.protein / effectiveProteinGoal()) * 100));
 
   renderTasks(t);
   renderMeasurements();
   renderWater();
   renderFoodMode();
   renderDayCoach(t);
+  renderTrainingCoach();
 
-  const electrolyteNeeded = padel || isLongFast();
+  const electrolyteNeeded = training.electrolytes;
   document.getElementById("electrolytesText").textContent =
     electrolyteNeeded ? "⚡ Vandaag extra elektrolyten aanbevolen." : "Geen extra elektrolyten nodig.";
 
@@ -1229,7 +1326,7 @@ function render() {
 
   document.getElementById("proteinProgress").style.width = pct + "%";
   document.getElementById("proteinText").textContent =
-    proteinLeft === 0 ? "Eiwitdoel gehaald ✓" : `Nog ${proteinLeft} g nodig van ${state.proteinGoal} g.`;
+    proteinLeft === 0 ? "Eiwitdoel gehaald ✓" : `Nog ${proteinLeft} g nodig van ${effectiveProteinGoal()} g.`;
   document.getElementById("todayCalories").textContent = `${t.kcal} kcal`;
   document.getElementById("todayProtein").textContent = `${t.protein} g`;
   document.getElementById("dayCaloriesFood").textContent = `${t.kcal} kcal`;
@@ -1252,12 +1349,13 @@ function bind() {
     if (element) element.addEventListener(eventName, handler);
   };
 
-  ["activity","extra","strategy","proteinGoal","calorieGoal","weightWeekday","waistInterval"].forEach(id => {
+  ["activity","activityDuration","activityIntensity","customDuration","customActivity","extra","strategy","proteinGoal","calorieGoal","weightWeekday","waistInterval"].forEach(id => {
     on(id, "change", event => {
       state[id] = Number.isNaN(Number(event.target.value)) || event.target.tagName === "SELECT"
         ? event.target.value
         : Number(event.target.value);
       if (id === "strategy") state.fastingStart = null;
+      if (["activity","activityDuration","activityIntensity","customDuration","customActivity"].includes(id)) state.activityDone = false;
       save();
       render();
     });

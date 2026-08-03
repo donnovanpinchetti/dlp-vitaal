@@ -1,4 +1,4 @@
-const CACHE = "dlp-vitaal-v0-8-0-no-cache";
+const CACHE = "dlp-vitaal-v0-8-1-no-cache";
 self.addEventListener("install", event => self.skipWaiting());
 self.addEventListener("activate", event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key)))));
