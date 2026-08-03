@@ -7,10 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="DLP Vitaal" />
-  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="manifest" href="manifest.webmanifest?v=083" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>DLP Vitaal V0.8.2.1</title>
-  <!-- DLP Vitaal V0.8.2.1 – Voedingsengine -->
+  <title>DLP Vitaal V0.8.3</title>
+  <!-- DLP Vitaal V0.8.3 – Robuuste voedingsengine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -746,17 +746,26 @@ function analyseMeal(text) {
   Object.keys(result).forEach(k=>result[k]=Math.max(0,Math.round(result[k]*10)/10));
   return {...result,found:matches.map(x=>x.name),breakdown:matches,confidence:matches.length?Math.round(matches.filter(x=>x.exact).length/matches.length*100):0};
 }
-// Herbereken eerder opgeslagen maaltijden wanneer de voedingsengine is vernieuwd.
-// Zo blijven oude, onjuiste schattingen niet in Vandaag geregistreerd staan.
-const nutritionEngineVersion = "0.8.2.1";
-if (state.nutritionEngineVersion !== nutritionEngineVersion) {
-  state.meals = (Array.isArray(state.meals) ? state.meals : []).map(meal => {
+// Voedingswaarden zijn afgeleide gegevens en worden daarom bij iedere start
+// opnieuw uit de oorspronkelijke maaltijdtekst berekend. Zo kunnen oude of
+// gecachte schattingen nooit leidend blijven na een verbetering van de engine.
+const nutritionEngineVersion = "0.8.3";
+function refreshStoredMealNutrition() {
+  const meals = Array.isArray(state.meals) ? state.meals : [];
+  let changed = state.nutritionEngineVersion !== nutritionEngineVersion;
+  state.meals = meals.map(meal => {
     if (!meal || !meal.text) return meal;
-    return {...meal, ...analyseMeal(meal.text), text:meal.text};
+    const fresh = analyseMeal(meal.text);
+    const updated = {...meal, ...fresh, text:meal.text};
+    const keys = ["kcal","protein","carbs","fat","fiber","confidence"];
+    if (keys.some(key => Number(meal[key] || 0) !== Number(updated[key] || 0))) changed = true;
+    if (JSON.stringify(meal.breakdown || []) !== JSON.stringify(updated.breakdown || [])) changed = true;
+    return updated;
   });
   state.nutritionEngineVersion = nutritionEngineVersion;
-  save();
+  if (changed) save();
 }
+refreshStoredMealNutrition();
 
 function foodCoach(meal, currentTotals) {
   const afterProtein = currentTotals.protein + meal.protein;
@@ -1609,7 +1618,7 @@ document.getElementById("date").textContent = new Intl.DateTimeFormat("nl-NL", {
 }).format(new Date());
 
 hydrate(); bind(); render();
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=083", {updateViaCache:"none"});
 </script>
 </body>
 </html>
