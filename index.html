@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.4.5 – stabiliteit en basisroutine -->
+  <!-- DLP Vitaal V0.4.6 – stabiliteit en basisroutine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -71,6 +71,14 @@
     .mealTitle { font-weight:800; margin-bottom:5px; }
     .mealMeta { color:var(--muted); font-size:13px; }
     .hidden { display:none; }
+    .routineItem { border:1px solid var(--line); border-radius:14px; padding:12px; margin:8px 0; background:#fff; }
+    .routineTop { display:flex; align-items:flex-start; gap:10px; }
+    .routineMain { flex:1; }
+    .routineName { font-weight:850; color:var(--navy); }
+    .routineDose { margin-top:3px; font-size:13px; color:var(--slate); line-height:1.4; }
+    .routineWhy { display:none; margin-top:9px; padding:10px; border-radius:10px; background:var(--blue); color:var(--blueText); font-size:13px; line-height:1.4; }
+    .routineWhy.open { display:block; }
+    .infoBtn { border:0; background:transparent; color:var(--blueText); font-size:18px; padding:0; cursor:pointer; }
     .taskHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }
     .taskProgress { font-size:13px; color:var(--muted); font-weight:800; white-space:nowrap; }
     .task { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
@@ -201,18 +209,77 @@
       </div>
 
       <div class="card">
-        <div class="sectionTitle">💊 Basisroutine</div>
-        <div class="routineGroup">
-          <div class="routineHeading">Ochtend</div>
-          <label class="check"><input type="checkbox" id="creatineDone" /><span>Creatine <span class="routineNote">5 gram</span></span></label>
-          <label class="check"><input type="checkbox" id="omegaDone" /><span>Omega 3</span></label>
-          <label class="check" id="d3Row"><input type="checkbox" id="d3Done" /><span>D3 + K2 <span class="routineNote" id="d3Note">Vandaag gepland</span></span></label>
-          <div class="routineHeading">Training</div>
-          <label class="check" id="wheyRow"><input type="checkbox" id="wheyDone" /><span>Whey <span class="routineNote" id="wheyNote">Alleen wanneer nodig</span></span></label>
-          <div class="routineHeading">Avond</div>
-          <label class="check"><input type="checkbox" id="magnesiumDone" /><span>Magnesium <span class="routineNote">2 capsules in de avond</span></span></label>
+        <div class="sectionTitle">💊 Mijn dagelijkse routine</div>
+
+        <div class="routineHeading">☀️ Ochtend · na het ontbijt</div>
+
+        <div class="routineItem">
+          <div class="routineTop">
+            <input type="checkbox" id="creatineDone" />
+            <div class="routineMain">
+              <div class="routineName">Creatine</div>
+              <div class="routineDose">5 gram · met een glas water of door je shake</div>
+            </div>
+            <button class="infoBtn" type="button" data-why="whyCreatine">ⓘ</button>
+          </div>
+          <div class="routineWhy" id="whyCreatine">Ondersteunt kracht en herstel. Dagelijks innemen is belangrijker dan het exacte tijdstip, ook op rustdagen.</div>
         </div>
-        <div class="routineProgress" id="routineProgress">Basisroutine 0 van 4 voltooid</div>
+
+        <div class="routineItem">
+          <div class="routineTop">
+            <input type="checkbox" id="omegaDone" />
+            <div class="routineMain">
+              <div class="routineName">Omega 3 Complete</div>
+              <div class="routineDose">1 capsule · tijdens of direct na het ontbijt</div>
+            </div>
+            <button class="infoBtn" type="button" data-why="whyOmega">ⓘ</button>
+          </div>
+          <div class="routineWhy" id="whyOmega">Levert EPA en DHA en ondersteunt onder andere hart, hersenen en ogen.</div>
+        </div>
+
+        <div class="routineItem" id="d3Row">
+          <div class="routineTop">
+            <input type="checkbox" id="d3Done" />
+            <div class="routineMain">
+              <div class="routineName">Vitamine D3 + K2</div>
+              <div class="routineDose" id="d3Note">1 capsule · vandaag bij het ontbijt</div>
+            </div>
+            <button class="infoBtn" type="button" data-why="whyD3">ⓘ</button>
+          </div>
+          <div class="routineWhy" id="whyD3">Jouw capsule bevat 4000 IE vitamine D3. Daarom staat deze om de dag op je routine.</div>
+        </div>
+
+        <div class="routineHeading">🎾 Na padel of 💪 krachttraining</div>
+
+        <div class="routineItem" id="wheyRow">
+          <div class="routineTop">
+            <input type="checkbox" id="wheyDone" />
+            <div class="routineMain">
+              <div class="routineName">Whey Isolate</div>
+              <div class="routineDose" id="wheyNote">1 maatschep · binnen 1 uur na de training</div>
+            </div>
+            <button class="infoBtn" type="button" data-why="whyWhey">ⓘ</button>
+          </div>
+          <div class="routineWhy" id="whyWhey">Praktische aanvulling wanneer je na training of via voeding nog onvoldoende eiwit binnenkrijgt.</div>
+        </div>
+
+        <div class="routineHeading">🌙 Avond · ongeveer 1 uur voor slapen</div>
+
+        <div class="routineItem">
+          <div class="routineTop">
+            <input type="checkbox" id="magnesiumDone" />
+            <div class="routineMain">
+              <div class="routineName">Magnesium Glycinate</div>
+              <div class="routineDose">2 capsules</div>
+            </div>
+            <button class="infoBtn" type="button" data-why="whyMagnesium">ⓘ</button>
+          </div>
+          <div class="routineWhy" id="whyMagnesium">Ondersteunt de normale spierfunctie en het zenuwstelsel en past goed in je avondroutine.</div>
+        </div>
+
+        <div class="routineProgress" id="routineProgress">Dagelijkse routine 0 van 4 voltooid</div>
+
+        <div class="routineHeading">💧 Indien nodig</div>
         <div class="advice" id="electrolytesText"></div>
       </div>
 
@@ -715,7 +782,7 @@ function render() {
   document.getElementById("wheyNote").textContent = wheyDue ? "Vandaag aanbevolen" : "Vandaag niet nodig";
   const routine = routineStatus(t);
   state.basisDone = routine.done === routine.total;
-  document.getElementById("routineProgress").textContent = `Basisroutine ${routine.done} van ${routine.total} voltooid`;
+  document.getElementById("routineProgress").textContent = `Dagelijkse routine ${routine.done} van ${routine.total} voltooid`;
 
   document.getElementById("proteinProgress").style.width = pct + "%";
   document.getElementById("proteinText").textContent =
@@ -744,6 +811,12 @@ function bind() {
   ["creatineDone","omegaDone","d3Done","wheyDone","magnesiumDone","waterDone","dayDone","activityDone"].forEach(id => {
     document.getElementById(id).addEventListener("change", e => {
       state[id] = e.target.checked; save(); render();
+    });
+  });
+  document.querySelectorAll("[data-why]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const target = document.getElementById(btn.dataset.why);
+      target.classList.toggle("open");
     });
   });
   document.getElementById("analyseBtn").addEventListener("click", runMealAnalysis);
