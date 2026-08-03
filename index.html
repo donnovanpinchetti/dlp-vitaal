@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.4.7a – stabiliteit en basisroutine -->
+  <!-- DLP Vitaal V0.5.0 – stabiliteit en basisroutine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -120,7 +120,7 @@
   </style>
 </head>
 <body>
-  <main class="app">
+  <main class="app"><div id="appError" class="card hidden" style="background:#fef2f2;color:#991b1b"></div>
     <header>
       <h1>DLP VITAAL</h1>
       <p>Jouw coach voor vandaag</p>
@@ -424,6 +424,13 @@
   </main>
 
 <script>
+window.addEventListener("error", event => {
+  const box = document.getElementById("appError");
+  if (box) {
+    box.classList.remove("hidden");
+    box.textContent = "Technische fout: " + (event.message || "onbekend");
+  }
+});
 const todayKey = new Date().toISOString().slice(0,10);
 const defaults = {
   activity:"Wandelen 30 minuten", extra:"Krachttraining 20 minuten",
@@ -842,34 +849,39 @@ function showScreen(id) {
   window.scrollTo({top:0, behavior:"smooth"});
 }
 function bind() {
+  const on = (id, eventName, handler) => {
+    const element = document.getElementById(id);
+    if (element) element.addEventListener(eventName, handler);
+  };
+
   ["activity","extra","proteinGoal","calorieGoal","weightWeekday","waistInterval"].forEach(id => {
-    const element = document.getElementById(id);
-    if (!element) return;
-    element.addEventListener("change", e => {
-      state[id] = Number.isNaN(Number(e.target.value)) || e.target.tagName === "SELECT"
-        ? e.target.value
-        : Number(e.target.value);
+    on(id, "change", event => {
+      state[id] = Number.isNaN(Number(event.target.value)) || event.target.tagName === "SELECT"
+        ? event.target.value
+        : Number(event.target.value);
       save();
       render();
     });
   });
+
   ["creatineDone","omegaDone","d3Done","wheyDone","magnesiumDone","dayDone","activityDone"].forEach(id => {
-    const element = document.getElementById(id);
-    if (!element) return;
-    element.addEventListener("change", e => {
-      state[id] = e.target.checked;
+    on(id, "change", event => {
+      state[id] = event.target.checked;
       save();
       render();
     });
   });
-  document.querySelectorAll("[data-why]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const target = document.getElementById(btn.dataset.why);
-      target.classList.toggle("open");
+
+  document.querySelectorAll("[data-why]").forEach(button => {
+    button.addEventListener("click", () => {
+      const target = document.getElementById(button.dataset.why);
+      if (target) target.classList.toggle("open");
     });
   });
-  document.getElementById("analyseBtn").addEventListener("click", runMealAnalysis);
-  document.getElementById("saveMealBtn").addEventListener("click", () => {
+
+  on("analyseBtn", "click", runMealAnalysis);
+
+  on("saveMealBtn", "click", () => {
     if (!pendingMeal || pendingMeal.found.length === 0) {
       alert("Deze maaltijd kan nog niet zinvol worden opgeslagen. Voeg concretere producten en hoeveelheden toe.");
       return;
@@ -877,111 +889,124 @@ function bind() {
     state.meals.push({...pendingMeal, savedAt:new Date().toISOString()});
     save();
     pendingMeal = null;
-    document.getElementById("mealText").value = "";
-    document.getElementById("analysisCard").classList.add("hidden");
+    const mealText = document.getElementById("mealText");
+    const analysisCard = document.getElementById("analysisCard");
+    if (mealText) mealText.value = "";
+    if (analysisCard) analysisCard.classList.add("hidden");
     render();
   });
-  document.getElementById("clearMealsBtn").addEventListener("click", () => {
+
+  on("clearMealsBtn", "click", () => {
     if (confirm("Alle maaltijden van vandaag wissen?")) {
       state.meals = [];
-      save(); render();
+      save();
+      render();
     }
   });
-  document.getElementById("measurementSaveBtn").addEventListener("click", () => {
-    const weightText = document.getElementById("weightInput").value.trim().replace(",", ".");
-    const waistText = document.getElementById("waistInput").value.trim().replace(",", ".");
+
+  on("measurementSaveBtn", "click", () => {
+    const weightInput = document.getElementById("weightInput");
+    const waistInput = document.getElementById("waistInput");
+    const weightText = weightInput ? weightInput.value.trim().replace(",", ".") : "";
+    const waistText = waistInput ? waistInput.value.trim().replace(",", ".") : "";
     if (!weightText && !waistText) {
       alert("Vul eerst je gewicht, buikomvang of allebei in.");
       return;
     }
     if (weightText) {
-      const v = parseFloat(weightText);
-      if (isNaN(v) || v < 40 || v > 250) { alert("Controleer het ingevoerde gewicht."); return; }
+      const value = parseFloat(weightText);
+      if (Number.isNaN(value) || value < 40 || value > 250) {
+        alert("Controleer het ingevoerde gewicht.");
+        return;
+      }
       state.previousWeight = state.lastWeight;
-      state.lastWeight = v;
+      state.lastWeight = value;
       state.lastWeightDate = localDateKey();
     }
     if (waistText) {
-      const v = parseFloat(waistText);
-      if (isNaN(v) || v < 50 || v > 200) { alert("Controleer de ingevoerde buikomvang."); return; }
+      const value = parseFloat(waistText);
+      if (Number.isNaN(value) || value < 50 || value > 200) {
+        alert("Controleer de ingevoerde buikomvang.");
+        return;
+      }
       state.previousWaist = state.lastWaist;
-      state.lastWaist = v;
+      state.lastWaist = value;
       state.lastWaistDate = localDateKey();
     }
-    document.getElementById("weightInput").value = "";
-    document.getElementById("waistInput").value = "";
-    save(); render();
+    if (weightInput) weightInput.value = "";
+    if (waistInput) waistInput.value = "";
+    save();
+    render();
   });
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const micBtn = document.getElementById("micBtn");
-  if (SpeechRecognition) {
+  if (micBtn && SpeechRecognition) {
     const recognition = new SpeechRecognition();
     recognition.lang = "nl-NL";
     recognition.interimResults = false;
     recognition.continuous = false;
+
     recognition.addEventListener("start", () => {
       micBtn.classList.add("listening");
-      document.getElementById("speechStatus").textContent = "Ik luister… vertel wat je hebt gegeten.";
+      const status = document.getElementById("speechStatus");
+      if (status) status.textContent = "Ik luister… vertel wat je hebt gegeten.";
     });
     recognition.addEventListener("result", event => {
       const spoken = event.results[0][0].transcript;
-      document.getElementById("mealText").value = spoken;
-      document.getElementById("speechStatus").textContent = `Gehoord: “${spoken}”`;
+      const mealText = document.getElementById("mealText");
+      const status = document.getElementById("speechStatus");
+      if (mealText) mealText.value = spoken;
+      if (status) status.textContent = `Gehoord: “${spoken}”`;
       runMealAnalysis();
     });
     recognition.addEventListener("end", () => micBtn.classList.remove("listening"));
     recognition.addEventListener("error", () => {
       micBtn.classList.remove("listening");
-      document.getElementById("speechStatus").textContent = "Inspreken lukte niet. Probeer opnieuw of gebruik het toetsenbord.";
+      const status = document.getElementById("speechStatus");
+      if (status) status.textContent = "Inspreken lukte niet. Probeer opnieuw of gebruik het toetsenbord.";
     });
     micBtn.addEventListener("click", () => recognition.start());
-  } else {
+  } else if (micBtn) {
     micBtn.addEventListener("click", () => {
-      document.getElementById("mealText").focus();
-      document.getElementById("speechStatus").textContent = "Gebruik de microfoon op je iPhone-toetsenbord om te dicteren.";
+      const mealText = document.getElementById("mealText");
+      const status = document.getElementById("speechStatus");
+      if (mealText) mealText.focus();
+      if (status) status.textContent = "Gebruik de microfoon op je iPhone-toetsenbord om te dicteren.";
     });
   }
 
-  const waterGlassBtn = document.getElementById("waterGlassBtn");
-  const water250Btn = document.getElementById("water250Btn");
-  const waterMinusBtn = document.getElementById("waterMinusBtn");
+  on("waterGlassBtn", "click", () => {
+    state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
+    save();
+    render();
+  });
+  on("water250Btn", "click", () => {
+    state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
+    save();
+    render();
+  });
+  on("waterMinusBtn", "click", () => {
+    state.waterMl = Math.max(0, Number(state.waterMl || 0) - 250);
+    save();
+    render();
+  });
 
-  if (waterGlassBtn) {
-    waterGlassBtn.addEventListener("click", () => {
-      state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
-      save();
-      render();
-    });
-  }
-  if (water250Btn) {
-    water250Btn.addEventListener("click", () => {
-      state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
-      save();
-      render();
-    });
-  }
-  if (waterMinusBtn) {
-    waterMinusBtn.addEventListener("click", () => {
-      state.waterMl = Math.max(0, Number(state.waterMl || 0) - 250);
-      save();
-      render();
-    });
-  }
-
-  document.getElementById("resetBtn").addEventListener("click", () => {
+  on("resetBtn", "click", () => {
     if (confirm("Alle lokale invoer wissen?")) {
       localStorage.removeItem("dlpVitaalState");
       location.reload();
     }
   });
-  document.querySelectorAll(".nav button").forEach(btn => {
-    btn.addEventListener("click", () => showScreen(btn.dataset.screen));
+
+  document.querySelectorAll(".nav button").forEach(button => {
+    button.addEventListener("click", () => showScreen(button.dataset.screen));
   });
-  document.querySelectorAll("[data-go]").forEach(btn => {
-    btn.addEventListener("click", () => showScreen(btn.dataset.go));
+  document.querySelectorAll("[data-go]").forEach(button => {
+    button.addEventListener("click", () => showScreen(button.dataset.go));
   });
 }
+
 document.getElementById("date").textContent = new Intl.DateTimeFormat("nl-NL", {
   weekday:"long", day:"numeric", month:"long"
 }).format(new Date());
