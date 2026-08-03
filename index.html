@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.5.2 – stabiliteit en basisroutine -->
+  <!-- DLP Vitaal V0.5.3 – stabiliteit en basisroutine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -124,7 +124,7 @@
     <header>
       <h1>DLP VITAAL</h1>
       <p>Jouw coach voor vandaag</p>
-      <div class="date" id="date"></div>
+      <div class="date" id="date"></div><div class="date">Versie 0.5.3</div>
     </header>
 
     <section id="todayScreen" class="screen active">
@@ -295,11 +295,11 @@
         <div class="waterCount" id="waterCount">0 van 8 glazen</div>
         <div class="small" id="waterMl">0 ml</div>
         <div class="waterButtons">
-          <button type="button" id="waterMinusBtn">− 1 glas</button>
-          <button type="button" id="waterGlassBtn">+ 1 glas</button>
-          <button type="button" id="water250Btn">+ 250 ml</button>
+          <button type="button" id="waterMinusBtn" onclick="changeWater(-250)">− 1 glas</button>
+          <button type="button" id="waterGlassBtn" onclick="changeWater(250)">+ 1 glas</button>
+          <button type="button" id="water250Btn" onclick="changeWater(250)">+ 250 ml</button>
         </div>
-        <div class="advice info waterAdvice" id="waterAdvice"></div>
+        <div class="advice info waterAdvice" id="waterAdvice">Begin rustig met je eerste glas water.</div>
       </div>
 
       <div class="card">
@@ -424,6 +424,45 @@
   </main>
 
 <script>
+function changeWater(amount) {
+  try {
+    const raw = localStorage.getItem("dlpVitaalState");
+    const saved = raw ? JSON.parse(raw) : {};
+    const current = Math.max(0, Number(saved.waterMl || 0));
+    saved.waterMl = Math.max(0, current + amount);
+    saved.waterGoalMl = Number(saved.waterGoalMl || 2000);
+    localStorage.setItem("dlpVitaalState", JSON.stringify(saved));
+
+    const ml = saved.waterMl;
+    const goal = saved.waterGoalMl;
+    const glasses = Math.round(ml / 250);
+    const goalGlasses = Math.round(goal / 250);
+    const filled = Math.min(goalGlasses, glasses);
+
+    const icons = document.getElementById("waterIcons");
+    const count = document.getElementById("waterCount");
+    const mlText = document.getElementById("waterMl");
+    const advice = document.getElementById("waterAdvice");
+
+    if (icons) icons.textContent = "🥛".repeat(filled) + "▫️".repeat(Math.max(0, goalGlasses - filled));
+    if (count) count.textContent = `${glasses} van ${goalGlasses} glazen`;
+    if (mlText) mlText.textContent = `${ml.toLocaleString("nl-NL")} ml`;
+    if (advice) {
+      if (ml <= 0) advice.textContent = "Begin rustig met je eerste glas water.";
+      else if (ml < goal * 0.5) advice.textContent = `Goed begonnen. Nog ongeveer ${Math.ceil((goal-ml)/250)} glazen te gaan.`;
+      else if (ml < goal) advice.textContent = `Je bent goed op weg. Nog ongeveer ${Math.ceil((goal-ml)/250)} glazen tot je dagdoel.`;
+      else advice.textContent = "🎉 Mooi! Je waterdoel is vandaag gehaald.";
+    }
+
+    if (typeof state !== "undefined") {
+      state.waterMl = saved.waterMl;
+      state.waterGoalMl = saved.waterGoalMl;
+      state.waterDone = ml >= goal;
+    }
+  } catch (error) {
+    alert("De waterknop kon niet worden verwerkt: " + error.message);
+  }
+}
 window.addEventListener("error", event => {
   const box = document.getElementById("appError");
   if (box) {
@@ -978,21 +1017,6 @@ function bind() {
     });
   }
 
-  on("waterGlassBtn", "click", () => {
-    state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
-    save();
-    render();
-  });
-  on("water250Btn", "click", () => {
-    state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
-    save();
-    render();
-  });
-  on("waterMinusBtn", "click", () => {
-    state.waterMl = Math.max(0, Number(state.waterMl || 0) - 250);
-    save();
-    render();
-  });
 
   on("resetBtn", "click", () => {
     if (confirm("Alle lokale invoer wissen?")) {
@@ -1014,7 +1038,14 @@ document.getElementById("date").textContent = new Intl.DateTimeFormat("nl-NL", {
 }).format(new Date());
 
 hydrate(); bind(); render();
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(registration => registration.unregister());
+  });
+}
+if ("caches" in window) {
+  caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
+}
 </script>
 </body>
 </html>
