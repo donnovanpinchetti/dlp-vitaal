@@ -1620,5 +1620,32 @@ document.getElementById("date").textContent = new Intl.DateTimeFormat("nl-NL", {
 hydrate(); bind(); render();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js?v=083", {updateViaCache:"none"});
 </script>
+
+<script>
+// V0.8.4 Coach Prioriteiten
+(function(){
+function updateCoach(){
+ const coach=document.getElementById('coach-prioriteiten');
+ if(!coach) return;
+ const water=(window.dagWater||0);
+ const eiwit=(window.dagEiwit||0);
+ const adv=[];
+ if(water<2000) adv.push("🥤 Drink 500 ml water");
+ if(eiwit<145) adv.push("🥛 Neem een eiwitrijke maaltijd of herstelshake");
+ if(adv.length===0) adv.push("✅ Je ligt mooi op koers. Houd dit vast!");
+ coach.innerHTML='<h3>Coach Prioriteiten</h3><ol><li>'+adv.join('</li><li>')+'</li></ol>';
+}
+window.updateCoachPrioriteiten=updateCoach;
+document.addEventListener('DOMContentLoaded',()=>{
+ const d=document.createElement('div');
+ d.id='coach-prioriteiten';
+ d.style.cssText='margin:16px;padding:16px;border:1px solid #ddd;border-radius:16px;background:#fff;';
+ const anchor=document.body.firstElementChild||document.body;
+ anchor.parentNode.insertBefore(d,anchor.nextSibling);
+ updateCoach();
+});
+})();
+</script>
+
 </body>
 </html>
