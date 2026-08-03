@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.7.1 – stabiliteit en basisroutine -->
+  <!-- DLP Vitaal V0.8.0 – stabiliteit en basisroutine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -96,6 +96,17 @@
     .selectedIngredientList { display:flex; flex-wrap:wrap; gap:8px; }
     .selectedIngredient { display:inline-flex; align-items:center; gap:7px; border-radius:999px; background:var(--green); color:var(--greenText); padding:8px 10px; font-size:13px; font-weight:800; }
     .selectedIngredient button { border:0; background:transparent; color:var(--greenText); font-weight:900; padding:0; }
+    .dayCoachCard { background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%); }
+    .dayCoachTitle { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+    .dayCoachTitle h2 { margin:0; font-size:24px; }
+    .dayScore { min-width:68px; text-align:center; border-radius:16px; padding:10px 8px; background:var(--navy); color:white; }
+    .dayScore b { display:block; font-size:24px; line-height:1; }
+    .dayScore span { font-size:11px; color:#cbd5e1; }
+    .coachSummaryGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:14px; }
+    .coachSummaryItem { border:1px solid var(--line); border-radius:13px; padding:11px; background:white; }
+    .coachSummaryItem span { display:block; color:var(--muted); font-size:12px; font-weight:750; }
+    .coachSummaryItem b { display:block; margin-top:4px; font-size:16px; }
+    .coachPriority { margin-top:14px; }
     .recipeGrid { display:grid; gap:10px; margin-top:10px; }
     .recipeCard { border:1px solid var(--line); border-radius:14px; padding:12px; background:#fff; }
     .recipeName { font-weight:850; margin-bottom:5px; }
@@ -146,10 +157,49 @@
     </header>
 
     <section id="todayScreen" class="screen active">
-      <div class="card hero">
-        <h2>Goedemorgen Don 👋</h2>
-        <p id="recoveryText">Je herstel ziet er vandaag goed uit.</p>
-        <p id="sleepText">Slaapgegevens ontbreken nog.</p>
+      <div class="card dayCoachCard">
+        <div class="dayCoachTitle">
+          <div>
+            <h2>Goedemorgen Don 👋</h2>
+            <p class="small" style="margin-top:6px">Dit is jouw persoonlijke dagoverzicht.</p>
+          </div>
+          <div class="dayScore">
+            <b id="dayScoreValue">0</b>
+            <span>dagscore</span>
+          </div>
+        </div>
+
+        <div class="coachSummaryGrid">
+          <div class="coachSummaryItem">
+            <span>Dagtype</span>
+            <b id="coachDayType">Normale eetdag</b>
+          </div>
+          <div class="coachSummaryItem">
+            <span>Beweging</span>
+            <b id="coachActivity">Wandelen</b>
+          </div>
+          <div class="coachSummaryItem">
+            <span>Water</span>
+            <b id="coachWater">0 / 8</b>
+          </div>
+          <div class="coachSummaryItem">
+            <span>Eiwit</span>
+            <b id="coachProtein">0 / 125 g</b>
+          </div>
+          <div class="coachSummaryItem">
+            <span>Routine</span>
+            <b id="coachRoutine">0 open</b>
+          </div>
+          <div class="coachSummaryItem">
+            <span>Maaltijden</span>
+            <b id="coachMeals">0</b>
+          </div>
+        </div>
+
+        <div class="coachPriority">
+          <div class="sectionTitle">🎯 Nu belangrijk</div>
+          <div class="advice" id="coachPriorityText">Begin rustig met een glas water.</div>
+        </div>
       </div>
 
       <div class="card" id="foodModeCard">
@@ -172,7 +222,7 @@
           <div class="sectionTitle" style="margin:0">🎯 Jouw volgende stap</div>
           <div class="taskProgress" id="taskProgress">0 van 5 klaar</div>
         </div>
-        <div class="advice" id="nextStepText"></div>
+        <div class="small" id="nextStepText"></div>
         <div id="taskList"></div>
 
         <div class="field">
@@ -1090,6 +1140,60 @@ function renderFoodMode() {
   }
 }
 
+function dayCoachPriority(t) {
+  const waterMl = Number(state.waterMl || 0);
+  const routine = routineStatus(t);
+  const proteinLeft = Math.max(0, Number(state.proteinGoal) - t.protein);
+  const hour = new Date().getHours();
+
+  if (waterMl < 250) return "💧 Drink nu je eerste glas water.";
+  if (!state.creatineDone && hour < 14) return "💊 Neem je creatine met een glas water of door je shake.";
+  if (!state.omegaDone && hour < 14) return "💊 Neem je omega 3 bij je eerste maaltijd.";
+  if (d3ScheduledToday() && !state.d3Done && hour < 14) return "☀️ Vandaag staat vitamine D3 + K2 gepland.";
+  if (!isLongFast() && state.meals.length === 0 && !(isIntermittentFast() && hour < 12)) {
+    return "🍽️ Registreer je eerste maaltijd zodat de coach kan meedenken.";
+  }
+  if (!state.activityDone && hour >= 14) return `🏃 Jouw geplande activiteit is: ${state.activity}.`;
+  if (proteinLeft > 35 && hour >= 16 && !isLongFast()) return `🥤 Je hebt nog ongeveer ${proteinLeft} g eiwit nodig.`;
+  if (wheyRecommended(t) && !state.wheyDone) return "🥤 Neem na je training je whey-shake.";
+  if (!state.magnesiumDone && hour >= 20) return "🌙 Neem vanavond je magnesium.";
+  if (waterMl < Number(state.waterGoalMl || 2000)) return "💧 Je bent goed op weg; voeg nog een glas water toe.";
+  if (!state.dayDone && hour >= 20) return "✅ Rond je dag kort af.";
+  return "Alles loopt goed. Houd je huidige ritme vast.";
+}
+
+function calculateDayScore(t) {
+  let score = 0;
+  const routine = routineStatus(t);
+  const waterGoal = Number(state.waterGoalMl || 2000);
+  const proteinGoal = Number(state.proteinGoal || 125);
+
+  score += Math.min(20, Math.round((Number(state.waterMl || 0) / waterGoal) * 20));
+  score += Math.min(20, Math.round((t.protein / proteinGoal) * 20));
+  score += state.activityDone ? 20 : 0;
+  score += routine.total ? Math.round((routine.done / routine.total) * 20) : 0;
+  score += state.meals.length > 0 || isLongFast() ? 10 : 0;
+  score += state.dayDone ? 10 : 0;
+
+  return Math.max(0, Math.min(100, score));
+}
+
+function renderDayCoach(t) {
+  const routine = routineStatus(t);
+  const waterGlasses = Math.round(Number(state.waterMl || 0) / 250);
+  const waterGoalGlasses = Math.round(Number(state.waterGoalMl || 2000) / 250);
+  const openRoutine = Math.max(0, routine.total - routine.done);
+
+  document.getElementById("dayScoreValue").textContent = calculateDayScore(t);
+  document.getElementById("coachDayType").textContent = state.strategy;
+  document.getElementById("coachActivity").textContent = state.activity.replace(" 30 minuten","").replace(" 20 minuten","");
+  document.getElementById("coachWater").textContent = `${waterGlasses} / ${waterGoalGlasses}`;
+  document.getElementById("coachProtein").textContent = `${t.protein} / ${state.proteinGoal} g`;
+  document.getElementById("coachRoutine").textContent = openRoutine === 0 ? "Compleet" : `${openRoutine} open`;
+  document.getElementById("coachMeals").textContent = isLongFast() ? "Vastendag" : String(state.meals.length);
+  document.getElementById("coachPriorityText").textContent = dayCoachPriority(t);
+}
+
 function render() {
   const padel = state.activity === "Padel";
   const rest = state.activity === "Rust / herstel";
@@ -1101,6 +1205,7 @@ function render() {
   renderMeasurements();
   renderWater();
   renderFoodMode();
+  renderDayCoach(t);
 
   const electrolyteNeeded = padel || isLongFast();
   document.getElementById("electrolytesText").textContent =
