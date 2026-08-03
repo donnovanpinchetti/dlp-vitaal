@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.4.6 – stabiliteit en basisroutine -->
+  <!-- DLP Vitaal V0.4.7 – stabiliteit en basisroutine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -79,6 +79,12 @@
     .routineWhy { display:none; margin-top:9px; padding:10px; border-radius:10px; background:var(--blue); color:var(--blueText); font-size:13px; line-height:1.4; }
     .routineWhy.open { display:block; }
     .infoBtn { border:0; background:transparent; color:var(--blueText); font-size:18px; padding:0; cursor:pointer; }
+    .waterCard { text-align:center; }
+    .waterIcons { font-size:24px; letter-spacing:4px; line-height:1.5; margin:8px 0; }
+    .waterCount { font-size:20px; font-weight:850; color:var(--navy); margin-top:4px; }
+    .waterButtons { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px; }
+    .waterButtons button { border:1px solid var(--line); border-radius:12px; padding:11px 8px; background:white; color:var(--navy); font-weight:800; font-size:14px; }
+    .waterAdvice { margin-top:12px; }
     .taskHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }
     .taskProgress { font-size:13px; color:var(--muted); font-weight:800; white-space:nowrap; }
     .task { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
@@ -283,9 +289,21 @@
         <div class="advice" id="electrolytesText"></div>
       </div>
 
+      <div class="card waterCard">
+        <div class="sectionTitle">💧 Watercoach</div>
+        <div class="waterIcons" id="waterIcons">🥛🥛🥛🥛🥛🥛🥛🥛</div>
+        <div class="waterCount" id="waterCount">0 van 8 glazen</div>
+        <div class="small" id="waterMl">0 ml</div>
+        <div class="waterButtons">
+          <button type="button" id="waterMinusBtn">− 1 glas</button>
+          <button type="button" id="waterGlassBtn">+ 1 glas</button>
+          <button type="button" id="water250Btn">+ 250 ml</button>
+        </div>
+        <div class="advice info waterAdvice" id="waterAdvice"></div>
+      </div>
+
       <div class="card">
         <div class="sectionTitle">🌙 Vanavond</div>
-        <label class="check"><input type="checkbox" id="waterDone" /> Waterdoel gehaald</label>
         <label class="check"><input type="checkbox" id="dayDone" /> Dag afronden</label>
       </div>
 
@@ -427,6 +445,7 @@ if (state.mealDate !== todayKey) {
   state.wheyDone = false;
   state.magnesiumDone = false;
   state.waterDone = false;
+  state.waterMl = 0;
   state.dayDone = false;
   state.activityDone = false;
 }
@@ -754,6 +773,27 @@ function runMealAnalysis() {
   document.getElementById("analysisCard").scrollIntoView({behavior:"smooth", block:"start"});
 }
 
+function renderWater() {
+  const ml = Math.max(0, Number(state.waterMl || 0));
+  const goal = Math.max(250, Number(state.waterGoalMl || 2000));
+  const glasses = Math.round(ml / 250);
+  const goalGlasses = Math.round(goal / 250);
+  const filled = Math.min(goalGlasses, glasses);
+  document.getElementById("waterIcons").textContent =
+    "🥛".repeat(filled) + "▫️".repeat(Math.max(0, goalGlasses - filled));
+  document.getElementById("waterCount").textContent = `${glasses} van ${goalGlasses} glazen`;
+  document.getElementById("waterMl").textContent = `${ml.toLocaleString("nl-NL")} ml`;
+
+  let advice;
+  if (ml <= 0) advice = "Begin rustig met je eerste glas water.";
+  else if (ml < goal * 0.5) advice = `Goed begonnen. Nog ongeveer ${Math.ceil((goal-ml)/250)} glazen te gaan.`;
+  else if (ml < goal) advice = `Je bent goed op weg. Nog ongeveer ${Math.ceil((goal-ml)/250)} glazen tot je dagdoel.`;
+  else advice = "🎉 Mooi! Je waterdoel is vandaag gehaald.";
+
+  document.getElementById("waterAdvice").textContent = advice;
+  state.waterDone = ml >= goal;
+}
+
 function render() {
   const padel = state.activity === "Padel";
   const rest = state.activity === "Rust / herstel";
@@ -893,6 +933,19 @@ function bind() {
       document.getElementById("speechStatus").textContent = "Gebruik de microfoon op je iPhone-toetsenbord om te dicteren.";
     });
   }
+
+  document.getElementById("waterGlassBtn").addEventListener("click", () => {
+    state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
+    save(); renderWater(); render();
+  });
+  document.getElementById("water250Btn").addEventListener("click", () => {
+    state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
+    save(); renderWater(); render();
+  });
+  document.getElementById("waterMinusBtn").addEventListener("click", () => {
+    state.waterMl = Math.max(0, Number(state.waterMl || 0) - 250);
+    save(); renderWater(); render();
+  });
 
   document.getElementById("resetBtn").addEventListener("click", () => {
     if (confirm("Alle lokale invoer wissen?")) {
