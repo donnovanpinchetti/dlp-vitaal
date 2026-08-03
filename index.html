@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.5.3 – stabiliteit en basisroutine -->
+  <!-- DLP Vitaal V0.6.0 – stabiliteit en basisroutine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -85,6 +85,10 @@
     .waterButtons { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px; }
     .waterButtons button { border:1px solid var(--line); border-radius:12px; padding:11px 8px; background:white; color:var(--navy); font-weight:800; font-size:14px; }
     .waterAdvice { margin-top:12px; }
+    .dayTypeGrid { display:grid; grid-template-columns:1fr; gap:8px; }
+    .dayTypeHint { margin-top:10px; }
+    .fastingStatus { margin-top:10px; }
+    .modeBadge { display:inline-block; padding:6px 10px; border-radius:999px; background:var(--blue); color:var(--blueText); font-size:12px; font-weight:850; }
     .taskHeader { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }
     .taskProgress { font-size:13px; color:var(--muted); font-weight:800; white-space:nowrap; }
     .task { display:flex; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
@@ -124,7 +128,7 @@
     <header>
       <h1>DLP VITAAL</h1>
       <p>Jouw coach voor vandaag</p>
-      <div class="date" id="date"></div><div class="date">Versie 0.5.3</div>
+      <div class="date" id="date"></div>
     </header>
 
     <section id="todayScreen" class="screen active">
@@ -132,6 +136,21 @@
         <h2>Goedemorgen Don 👋</h2>
         <p id="recoveryText">Je herstel ziet er vandaag goed uit.</p>
         <p id="sleepText">Slaapgegevens ontbreken nog.</p>
+      </div>
+
+      <div class="card" id="foodModeCard">
+        <div class="sectionTitle">🍽️ Wat voor dag wordt het vandaag?</div>
+        <div class="dayTypeGrid">
+          <select id="strategy">
+            <option>Normale eetdag</option>
+            <option>Intermittent fasting 16:8</option>
+            <option>24 uur vasten</option>
+            <option>48 uur vasten</option>
+            <option>Variabele dag</option>
+          </select>
+        </div>
+        <div class="fastingStatus" id="fastingStatus"></div>
+        <div class="advice info dayTypeHint" id="foodModeAdvice"></div>
       </div>
 
       <div class="card">
@@ -211,7 +230,7 @@
         <div class="row"><span class="label">Eiwitten geregistreerd</span><span class="value" id="todayProtein">0 g</span></div>
         <div class="progressWrap"><div class="progress" id="proteinProgress"></div></div>
         <div class="small" id="proteinText"></div>
-        <button class="secondary" data-go="foodScreen">Maaltijd toevoegen</button>
+        <button class="secondary" id="addMealBtn" data-go="foodScreen">Maaltijd toevoegen</button>
       </div>
 
       <div class="card">
@@ -295,11 +314,11 @@
         <div class="waterCount" id="waterCount">0 van 8 glazen</div>
         <div class="small" id="waterMl">0 ml</div>
         <div class="waterButtons">
-          <button type="button" id="waterMinusBtn" onclick="changeWater(-250)">− 1 glas</button>
-          <button type="button" id="waterGlassBtn" onclick="changeWater(250)">+ 1 glas</button>
-          <button type="button" id="water250Btn" onclick="changeWater(250)">+ 250 ml</button>
+          <button type="button" id="waterMinusBtn">− 1 glas</button>
+          <button type="button" id="waterGlassBtn">+ 1 glas</button>
+          <button type="button" id="water250Btn">+ 250 ml</button>
         </div>
-        <div class="advice info waterAdvice" id="waterAdvice">Begin rustig met je eerste glas water.</div>
+        <div class="advice info waterAdvice" id="waterAdvice"></div>
       </div>
 
       <div class="card">
@@ -424,45 +443,6 @@
   </main>
 
 <script>
-function changeWater(amount) {
-  try {
-    const raw = localStorage.getItem("dlpVitaalState");
-    const saved = raw ? JSON.parse(raw) : {};
-    const current = Math.max(0, Number(saved.waterMl || 0));
-    saved.waterMl = Math.max(0, current + amount);
-    saved.waterGoalMl = Number(saved.waterGoalMl || 2000);
-    localStorage.setItem("dlpVitaalState", JSON.stringify(saved));
-
-    const ml = saved.waterMl;
-    const goal = saved.waterGoalMl;
-    const glasses = Math.round(ml / 250);
-    const goalGlasses = Math.round(goal / 250);
-    const filled = Math.min(goalGlasses, glasses);
-
-    const icons = document.getElementById("waterIcons");
-    const count = document.getElementById("waterCount");
-    const mlText = document.getElementById("waterMl");
-    const advice = document.getElementById("waterAdvice");
-
-    if (icons) icons.textContent = "🥛".repeat(filled) + "▫️".repeat(Math.max(0, goalGlasses - filled));
-    if (count) count.textContent = `${glasses} van ${goalGlasses} glazen`;
-    if (mlText) mlText.textContent = `${ml.toLocaleString("nl-NL")} ml`;
-    if (advice) {
-      if (ml <= 0) advice.textContent = "Begin rustig met je eerste glas water.";
-      else if (ml < goal * 0.5) advice.textContent = `Goed begonnen. Nog ongeveer ${Math.ceil((goal-ml)/250)} glazen te gaan.`;
-      else if (ml < goal) advice.textContent = `Je bent goed op weg. Nog ongeveer ${Math.ceil((goal-ml)/250)} glazen tot je dagdoel.`;
-      else advice.textContent = "🎉 Mooi! Je waterdoel is vandaag gehaald.";
-    }
-
-    if (typeof state !== "undefined") {
-      state.waterMl = saved.waterMl;
-      state.waterGoalMl = saved.waterGoalMl;
-      state.waterDone = ml >= goal;
-    }
-  } catch (error) {
-    alert("De waterknop kon niet worden verwerkt: " + error.message);
-  }
-}
 window.addEventListener("error", event => {
   const box = document.getElementById("appError");
   if (box) {
@@ -473,7 +453,7 @@ window.addEventListener("error", event => {
 const todayKey = new Date().toISOString().slice(0,10);
 const defaults = {
   activity:"Wandelen 30 minuten", extra:"Krachttraining 20 minuten",
-  strategy:"Normaal eten", proteinGoal:125, calorieGoal:2000,
+  strategy:"Normale eetdag", fastingStart:null, proteinGoal:125, calorieGoal:2000,
   basisDone:false, creatineDone:false, omegaDone:false, d3Done:false, wheyDone:false, magnesiumDone:false,
   waterDone:false, waterMl:0, waterGoalMl:2000, dayDone:false, activityDone:false,
   weightWeekday:3, waistInterval:30,
@@ -535,7 +515,7 @@ function setInput(id, value) {
   else el.value = value;
 }
 function hydrate() {
-  ["activity","extra","proteinGoal","calorieGoal","weightWeekday","waistInterval",
+  ["activity","extra","strategy","proteinGoal","calorieGoal","weightWeekday","waistInterval",
     "creatineDone","omegaDone","d3Done","wheyDone","magnesiumDone",
     "dayDone","activityDone"].forEach(k => setInput(k, state[k]));
 }
@@ -661,6 +641,7 @@ function d3ScheduledToday() {
   return Math.abs(Math.round((now - start) / 86400000)) % 2 === 0;
 }
 function wheyRecommended(t) {
+  if (isLongFast()) return false;
   const trained = state.activityDone && (state.activity.includes("Padel") || state.activity.includes("Krachttraining"));
   return trained || (Number(state.proteinGoal) - t.protein >= 30 && new Date().getHours() >= 16);
 }
@@ -822,7 +803,7 @@ function runMealAnalysis() {
 
 function renderWater() {
   const ml = Math.max(0, Number(state.waterMl || 0));
-  const goal = Math.max(250, Number(state.waterGoalMl || 2000));
+  const goal = Math.max(250, Number(isLongFast() ? 2500 : (state.waterGoalMl || 2000)));
   const glasses = Math.round(ml / 250);
   const goalGlasses = Math.round(goal / 250);
   const filled = Math.min(goalGlasses, glasses);
@@ -841,6 +822,87 @@ function renderWater() {
   state.waterDone = ml >= goal;
 }
 
+function isLongFast() {
+  return state.strategy === "24 uur vasten" || state.strategy === "48 uur vasten";
+}
+function isIntermittentFast() {
+  return state.strategy === "Intermittent fasting 16:8";
+}
+function fastingHoursTarget() {
+  if (state.strategy === "24 uur vasten") return 24;
+  if (state.strategy === "48 uur vasten") return 48;
+  return 0;
+}
+function ensureFastingStart() {
+  if (isLongFast() && !state.fastingStart) {
+    state.fastingStart = new Date().toISOString();
+    save();
+  }
+  if (!isLongFast() && state.fastingStart) {
+    state.fastingStart = null;
+    save();
+  }
+}
+function fastingProgressText() {
+  if (!isLongFast() || !state.fastingStart) return "";
+  const started = new Date(state.fastingStart);
+  const elapsed = Math.max(0, (Date.now() - started.getTime()) / 3600000);
+  const target = fastingHoursTarget();
+  const left = Math.max(0, target - elapsed);
+  if (left <= 0) return `<span class="modeBadge">Vasten voltooid</span>`;
+  return `<span class="modeBadge">${elapsed.toFixed(1).replace(".", ",")} uur bezig · nog ${left.toFixed(1).replace(".", ",")} uur</span>`;
+}
+function renderFoodMode() {
+  ensureFastingStart();
+
+  const status = document.getElementById("fastingStatus");
+  const advice = document.getElementById("foodModeAdvice");
+  const addMealBtn = document.getElementById("addMealBtn");
+
+  if (status) status.innerHTML = fastingProgressText();
+
+  if (state.strategy === "Normale eetdag") {
+    advice.textContent = "Registreer je maaltijden en verdeel je eiwitten rustig over de dag.";
+    if (addMealBtn) {
+      addMealBtn.disabled = false;
+      addMealBtn.textContent = "Maaltijd toevoegen";
+      addMealBtn.style.opacity = "1";
+    }
+  } else if (isIntermittentFast()) {
+    const hour = new Date().getHours();
+    const open = hour >= 12 && hour < 20;
+    advice.textContent = open
+      ? "Je eetvenster is open van 12:00 tot 20:00. Kies nu een eiwitrijke maaltijd."
+      : "Je vastenperiode loopt. Drink water, koffie of thee zonder calorieën.";
+    if (addMealBtn) {
+      addMealBtn.disabled = !open;
+      addMealBtn.textContent = open ? "Maaltijd toevoegen" : "Eetvenster gesloten";
+      addMealBtn.style.opacity = open ? "1" : ".55";
+    }
+  } else if (state.strategy === "24 uur vasten") {
+    advice.textContent = "Vandaag focus je op water, herstel en elektrolyten. Registreer pas weer eten wanneer je het vasten verbreekt.";
+    if (addMealBtn) {
+      addMealBtn.disabled = true;
+      addMealBtn.textContent = "Vandaag vasten";
+      addMealBtn.style.opacity = ".55";
+    }
+  } else if (state.strategy === "48 uur vasten") {
+    advice.textContent = "Langere vastendag: let extra op water, elektrolyten en hoe je je voelt. Stop bij duizeligheid, flauwvallen of aanhoudende klachten.";
+    if (addMealBtn) {
+      addMealBtn.disabled = true;
+      addMealBtn.textContent = "Vandaag vasten";
+      addMealBtn.style.opacity = ".55";
+    }
+  } else {
+    advice.textContent = "Je bepaalt vandaag zelf je eetmomenten. Registreer alleen wat je daadwerkelijk eet.";
+    if (addMealBtn) {
+      addMealBtn.disabled = false;
+      addMealBtn.textContent = "Maaltijd toevoegen";
+      addMealBtn.style.opacity = "1";
+    }
+  }
+}
+
 function render() {
   const padel = state.activity === "Padel";
   const rest = state.activity === "Rust / herstel";
@@ -851,8 +913,9 @@ function render() {
   renderTasks(t);
   renderMeasurements();
   renderWater();
+  renderFoodMode();
 
-  const electrolyteNeeded = padel;
+  const electrolyteNeeded = padel || isLongFast();
   document.getElementById("electrolytesText").textContent =
     electrolyteNeeded ? "⚡ Vandaag extra elektrolyten aanbevolen." : "Geen extra elektrolyten nodig.";
 
@@ -895,11 +958,12 @@ function bind() {
     if (element) element.addEventListener(eventName, handler);
   };
 
-  ["activity","extra","proteinGoal","calorieGoal","weightWeekday","waistInterval"].forEach(id => {
+  ["activity","extra","strategy","proteinGoal","calorieGoal","weightWeekday","waistInterval"].forEach(id => {
     on(id, "change", event => {
       state[id] = Number.isNaN(Number(event.target.value)) || event.target.tagName === "SELECT"
         ? event.target.value
         : Number(event.target.value);
+      if (id === "strategy") state.fastingStart = null;
       save();
       render();
     });
@@ -1017,6 +1081,21 @@ function bind() {
     });
   }
 
+  on("waterGlassBtn", "click", () => {
+    state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
+    save();
+    render();
+  });
+  on("water250Btn", "click", () => {
+    state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
+    save();
+    render();
+  });
+  on("waterMinusBtn", "click", () => {
+    state.waterMl = Math.max(0, Number(state.waterMl || 0) - 250);
+    save();
+    render();
+  });
 
   on("resetBtn", "click", () => {
     if (confirm("Alle lokale invoer wissen?")) {
@@ -1038,14 +1117,7 @@ document.getElementById("date").textContent = new Intl.DateTimeFormat("nl-NL", {
 }).format(new Date());
 
 hydrate(); bind(); render();
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    registrations.forEach(registration => registration.unregister());
-  });
-}
-if ("caches" in window) {
-  caches.keys().then(keys => keys.forEach(key => caches.delete(key)));
-}
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 </script>
 </body>
 </html>
