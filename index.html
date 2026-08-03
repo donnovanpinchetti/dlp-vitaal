@@ -9,8 +9,8 @@
   <meta name="apple-mobile-web-app-title" content="DLP Vitaal" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>DLP Vitaal V0.8.1</title>
-  <!-- DLP Vitaal V0.8.1 – Trainingscoach -->
+  <title>DLP Vitaal V0.8.2</title>
+  <!-- DLP Vitaal V0.8.2 – Voedingsengine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -153,6 +153,17 @@
     .micRow { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:stretch; }
     .micButton { width:52px; border:0; border-radius:12px; background:var(--navy); color:white; font-size:22px; }
     .micButton.listening { animation:pulse 1s infinite; }
+    .foodBreakdown { margin-top:12px; border:1px solid var(--line); border-radius:14px; overflow:hidden; }
+    .foodBreakdownRow { display:grid; grid-template-columns:1fr auto; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line); background:white; }
+    .foodBreakdownRow:last-child { border-bottom:0; }
+    .foodBreakdownName { font-weight:800; }
+    .foodBreakdownMeta { color:var(--muted); font-size:12px; margin-top:3px; }
+    .foodBreakdownValue { text-align:right; font-weight:850; white-space:nowrap; }
+    .personalProduct { border:1px solid var(--line); border-radius:14px; padding:12px; margin-top:9px; background:white; }
+    .personalProductTop { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+    .personalProduct button { border:0; background:var(--danger); color:var(--dangerText); border-radius:10px; padding:7px 9px; font-weight:800; }
+    .fiveGrid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .fullSpan { grid-column:1/-1; }
     @keyframes pulse { 50% { opacity:.55; } }
   </style>
 </head>
@@ -476,7 +487,9 @@
           <div class="analysisItem">Eiwitten<b id="resultProtein">0 g</b></div>
           <div class="analysisItem">Koolhydraten<b id="resultCarbs">0 g</b></div>
           <div class="analysisItem">Vetten<b id="resultFat">0 g</b></div>
+          <div class="analysisItem">Vezels<b id="resultFiber">0 g</b></div>
         </div>
+        <div class="foodBreakdown" id="foodBreakdown"></div>
         <div class="advice info" id="estimateNote"></div>
         <div class="sectionTitle" style="margin-top:16px">🤖 Coachadvies</div>
         <div class="advice" id="foodAdvice"></div>
@@ -487,6 +500,7 @@
         <div class="sectionTitle">Dagtotaal tot nu toe</div>
         <div class="row"><span class="label">Calorieën</span><span class="value" id="dayCaloriesFood">0 kcal</span></div>
         <div class="row"><span class="label">Eiwitten</span><span class="value" id="dayProteinFood">0 g</span></div>
+        <div class="row"><span class="label">Vezels</span><span class="value" id="dayFiberFood">0 g</span></div>
         <div class="row"><span class="label">Nog nodig voor eiwitdoel</span><span class="value" id="proteinLeftFood">125 g</span></div>
         <div class="advice" id="dayAdvice"></div>
       </div>
@@ -547,7 +561,25 @@
         </div>
         <div class="row"><span class="label">Dagelijkse basis</span><span class="value">Eén moment</span></div>
         <div class="row"><span class="label">Elektrolyten</span><span class="value">Sport/vasten</span></div>
-        <button class="primary" id="resetBtn" style="margin-top:14px">Wis alle lokale invoer</button>
+      </div>
+      <div class="card">
+        <div class="sectionTitle">🥣 Mijn producten</div>
+        <div class="small">Voeg een product of merk toe dat jij vaak gebruikt. Waarden gelden per gekozen standaardportie.</div>
+        <div class="fiveGrid">
+          <div class="field fullSpan"><label for="customFoodName">Naam / herkenningswoord</label><input id="customFoodName" type="text" placeholder="Bijvoorbeeld: mijn granola" /></div>
+          <div class="field"><label for="customFoodServing">Portie</label><input id="customFoodServing" type="number" min="1" step="1" placeholder="40" /></div>
+          <div class="field"><label for="customFoodUnit">Eenheid</label><select id="customFoodUnit"><option value="g">gram</option><option value="ml">ml</option><option value="piece">stuk</option></select></div>
+          <div class="field"><label for="customFoodKcal">kcal</label><input id="customFoodKcal" type="number" min="0" step="1" placeholder="180" /></div>
+          <div class="field"><label for="customFoodProtein">Eiwit (g)</label><input id="customFoodProtein" type="number" min="0" step="0.1" placeholder="5" /></div>
+          <div class="field"><label for="customFoodCarbs">Koolhydraten (g)</label><input id="customFoodCarbs" type="number" min="0" step="0.1" placeholder="24" /></div>
+          <div class="field"><label for="customFoodFat">Vet (g)</label><input id="customFoodFat" type="number" min="0" step="0.1" placeholder="7" /></div>
+          <div class="field fullSpan"><label for="customFoodFiber">Vezels (g)</label><input id="customFoodFiber" type="number" min="0" step="0.1" placeholder="4" /></div>
+        </div>
+        <button class="primary" id="addCustomFoodBtn" style="margin-top:12px">Voeg toe aan Mijn producten</button>
+        <div id="customFoodList"></div>
+      </div>
+      <div class="card">
+        <button class="primary" id="resetBtn">Wis alle lokale invoer</button>
       </div>
     </section>
 
@@ -575,7 +607,7 @@ const defaults = {
   waterDone:false, waterMl:0, waterGoalMl:2000, dayDone:false, activityDone:false,
   weightWeekday:3, waistInterval:30,
   lastWeightDate:"2026-07-27", lastWeight:null, previousWeight:null, lastWaistDate:"2026-07-27", lastWaist:null, previousWaist:null,
-  mealDate:todayKey, meals:[], recipes:[{"name": "Blauwe-bessen herstelshake", "text": "150 gram blauwe bessen, 1 banaan, 30 gram whey, sap van een halve citroen, kaneel en 250 ml water"}, {"name": "Eenvoudige eiwitshake", "text": "30 gram whey, 1 banaan en 250 ml water"}, {"name": "Havermout-bessen ontbijt", "text": "40 gram havermout, 250 gram yoghurt, 75 gram blauwe bessen en kaneel"}]
+  mealDate:todayKey, meals:[], personalFoods:[], recipes:[{"name": "Blauwe-bessen herstelshake", "text": "150 gram blauwe bessen, 1 banaan, 30 gram whey, sap van een halve citroen, kaneel en 250 ml water"}, {"name": "Eenvoudige eiwitshake", "text": "30 gram whey, 1 banaan en 250 ml water"}, {"name": "Havermout-bessen ontbijt", "text": "40 gram havermout, 250 gram yoghurt, 75 gram blauwe bessen en kaneel"}]
 };
 const state = {...defaults, ...JSON.parse(localStorage.getItem("dlpVitaalState") || "{}")};
 const legacyActivities = {
@@ -601,31 +633,39 @@ if (state.mealDate !== todayKey) {
   state.activitySource = "manual";
 }
 
-const foodDB = [
-  {terms:["griekse yoghurt","yoghurt"], serving:250, kcal:190, protein:23, carbs:9, fat:6, unit:"g"},
-  {terms:["kwark"], serving:250, kcal:150, protein:25, carbs:10, fat:1, unit:"g"},
-  {terms:["havermout"], serving:40, kcal:150, protein:5, carbs:24, fat:3, unit:"g"},
-  {terms:["blauwe bessen","bosbessen"], serving:75, kcal:43, protein:1, carbs:8, fat:0, unit:"g"},
-  {terms:["banaan"], serving:1, kcal:105, protein:1, carbs:27, fat:0, unit:"piece"},
-  {terms:["appel"], serving:1, kcal:80, protein:0, carbs:21, fat:0, unit:"piece"},
-  {terms:["peer"], serving:1, kcal:95, protein:1, carbs:25, fat:0, unit:"piece"},
-  {terms:["ei","eieren"], serving:1, kcal:78, protein:6, carbs:1, fat:5, unit:"piece"},
-  {terms:["boterham","boterhammen","brood"], serving:1, kcal:85, protein:4, carbs:15, fat:1, unit:"piece"},
-  {terms:["kaas"], serving:30, kcal:110, protein:8, carbs:0, fat:9, unit:"g"},
-  {terms:["kipfilet","kip"], serving:150, kcal:250, protein:46, carbs:0, fat:5, unit:"g"},
-  {terms:["zalm"], serving:150, kcal:310, protein:33, carbs:0, fat:19, unit:"g"},
-  {terms:["tonijn"], serving:120, kcal:140, protein:30, carbs:0, fat:1, unit:"g"},
-  {terms:["rijst"], serving:150, kcal:195, protein:4, carbs:42, fat:1, unit:"g"},
-  {terms:["aardappelen","aardappel"], serving:200, kcal:155, protein:4, carbs:34, fat:0, unit:"g"},
-  {terms:["spinazie"], serving:50, kcal:12, protein:2, carbs:1, fat:0, unit:"g"},
-  {terms:["bleekselderij","selderij"], serving:1, kcal:10, protein:0, carbs:2, fat:0, unit:"piece"},
-  {terms:["avocado"], serving:1, kcal:240, protein:3, carbs:13, fat:22, unit:"piece"},
-  {terms:["melk"], serving:250, kcal:120, protein:9, carbs:12, fat:4, unit:"ml"},
-  {terms:["eiwitpoeder","proteinepoeder","proteïnepoeder","whey"], serving:30, kcal:120, protein:24, carbs:3, fat:2, unit:"g"},
-  {terms:["noten","amandelen"], serving:30, kcal:180, protein:6, carbs:5, fat:16, unit:"g"},
-  {terms:["olijfolie","olie"], serving:10, kcal:90, protein:0, carbs:0, fat:10, unit:"g"},
-  {terms:["groenten","groente"], serving:200, kcal:70, protein:4, carbs:12, fat:1, unit:"g"}
+const baseFoodDB = [
+  {id:"speltbroodje", name:"speltbroodje", terms:["speltbroodje","meergranen speltbroodje","meergranenbroodje","volkoren broodje","broodje"], serving:1, unit:"piece", kcal:190, protein:8, carbs:35, fat:2, fiber:5, countWords:["broodjes","broodje"]},
+  {id:"linzenwafel", name:"linzenwafel", terms:["linzenwafels","linzewafels","linzenwafel","linzewafel"], serving:1, unit:"piece", kcal:35, protein:2, carbs:5.5, fat:0.7, fiber:1.4, countWords:["linzenwafels","linzewafels","linzenwafel","linzewafel"]},
+  {id:"beemster", name:"Beemster kaas", terms:["beemster jong belegen","beemster belegen","beemster","plakken kaas","plak kaas"], serving:1, unit:"piece", kcal:90, protein:6.3, carbs:0, fat:7.5, fiber:0, countWords:["plakken","plak"]},
+  {id:"cheese", name:"kaas", terms:["kaas"], serving:1, unit:"piece", kcal:90, protein:6.3, carbs:0, fat:7.5, fiber:0, countWords:["plakken","plak"]},
+  {id:"bread", name:"volkoren boterham", terms:["boterhammen","boterham","sneetjes brood","snee brood","brood"], serving:1, unit:"piece", kcal:85, protein:4, carbs:15, fat:1, fiber:2.3, countWords:["boterhammen","boterham","sneetjes","snee"]},
+  {id:"greekyoghurt", name:"Griekse yoghurt", terms:["griekse yoghurt"], serving:250, unit:"g", kcal:190, protein:23, carbs:9, fat:6, fiber:0},
+  {id:"yoghurt", name:"yoghurt", terms:["yoghurt"], serving:250, unit:"g", kcal:150, protein:12, carbs:12, fat:5, fiber:0},
+  {id:"quark", name:"kwark", terms:["magere kwark","kwark"], serving:250, unit:"g", kcal:150, protein:25, carbs:10, fat:1, fiber:0},
+  {id:"oats", name:"havermout", terms:["havermout"], serving:40, unit:"g", kcal:150, protein:5, carbs:24, fat:3, fiber:4},
+  {id:"berries", name:"blauwe bessen", terms:["blauwe bessen","bosbessen"], serving:75, unit:"g", kcal:43, protein:1, carbs:8, fat:0, fiber:1.8},
+  {id:"banana", name:"banaan", terms:["bananen","banaan"], serving:1, unit:"piece", kcal:105, protein:1.3, carbs:27, fat:0.4, fiber:3.1},
+  {id:"apple", name:"appel", terms:["appels","appel"], serving:1, unit:"piece", kcal:80, protein:0.4, carbs:21, fat:0.3, fiber:4},
+  {id:"pear", name:"peer", terms:["peren","peer"], serving:1, unit:"piece", kcal:95, protein:0.6, carbs:25, fat:0.2, fiber:5},
+  {id:"egg", name:"ei", terms:["eieren","eitjes","ei"], serving:1, unit:"piece", kcal:78, protein:6.3, carbs:0.6, fat:5.3, fiber:0},
+  {id:"chicken", name:"kipfilet", terms:["kipfilet","kip"], serving:150, unit:"g", kcal:250, protein:46, carbs:0, fat:5, fiber:0},
+  {id:"salmon", name:"zalm", terms:["zalm"], serving:150, unit:"g", kcal:310, protein:33, carbs:0, fat:19, fiber:0},
+  {id:"tuna", name:"tonijn", terms:["tonijn"], serving:120, unit:"g", kcal:140, protein:30, carbs:0, fat:1, fiber:0},
+  {id:"rice", name:"gekookte rijst", terms:["rijst"], serving:150, unit:"g", kcal:195, protein:4, carbs:42, fat:1, fiber:1},
+  {id:"potato", name:"aardappelen", terms:["aardappelen","aardappel"], serving:200, unit:"g", kcal:155, protein:4, carbs:34, fat:0, fiber:4},
+  {id:"spinach", name:"spinazie", terms:["spinazie"], serving:100, unit:"g", kcal:23, protein:3, carbs:2, fat:0.4, fiber:2.2},
+  {id:"avocado", name:"avocado", terms:["avocado"], serving:1, unit:"piece", kcal:240, protein:3, carbs:13, fat:22, fiber:10},
+  {id:"milk", name:"melk", terms:["melk"], serving:250, unit:"ml", kcal:120, protein:9, carbs:12, fat:4, fiber:0},
+  {id:"whey", name:"whey", terms:["eiwitpoeder","proteinepoeder","proteïnepoeder","whey"], serving:30, unit:"g", kcal:120, protein:24, carbs:3, fat:2, fiber:0},
+  {id:"walnuts", name:"walnoten", terms:["walnoten","walnoot"], serving:30, unit:"g", kcal:196, protein:4.6, carbs:2.1, fat:19.6, fiber:2},
+  {id:"nuts", name:"noten", terms:["amandelen","noten"], serving:30, unit:"g", kcal:180, protein:6, carbs:5, fat:16, fiber:3.5},
+  {id:"oil", name:"olijfolie", terms:["olijfolie","olie"], serving:10, unit:"g", kcal:90, protein:0, carbs:0, fat:10, fiber:0},
+  {id:"vegetables", name:"groenten", terms:["groenten","groente"], serving:200, unit:"g", kcal:70, protein:4, carbs:12, fat:1, fiber:6}
 ];
+function allFoodDB() {
+  const personal = (Array.isArray(state.personalFoods) ? state.personalFoods : []).map((x,i) => ({...x, id:`personal-${i}`, personal:true, terms:[String(x.name||"").toLowerCase()]}));
+  return [...personal, ...baseFoodDB];
+}
 
 let pendingMeal = null;
 
@@ -645,45 +685,65 @@ function hydrate() {
 }
 function totals() {
   return state.meals.reduce((a,m) => ({
-    kcal:a.kcal+m.kcal, protein:a.protein+m.protein, carbs:a.carbs+m.carbs, fat:a.fat+m.fat
-  }), {kcal:0, protein:0, carbs:0, fat:0});
+    kcal:a.kcal+Number(m.kcal||0), protein:a.protein+Number(m.protein||0), carbs:a.carbs+Number(m.carbs||0), fat:a.fat+Number(m.fat||0), fiber:a.fiber+Number(m.fiber||0)
+  }), {kcal:0, protein:0, carbs:0, fat:0, fiber:0});
 }
-function findQuantity(text, term, item) {
-  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const before = new RegExp("(\\d+(?:[\\.,]\\d+)?)\\s*(gram|g|ml|stuks?|x)?\\s*(?:\\w+\\s+){0,2}" + escaped, "i");
-  const match = text.match(before);
-  if (match) {
-    const n = Number(match[1].replace(",", "."));
-    const unit = (match[2] || "").toLowerCase();
-    if (item.unit === "piece" && (!unit || unit.startsWith("stuk") || unit === "x")) return n;
-    if (item.unit !== "piece") return n / item.serving;
-  }
-  const wordNumbers = {"een":1,"één":1,"twee":2,"drie":3,"vier":4};
-  for (const [word,n] of Object.entries(wordNumbers)) {
-    const rx = new RegExp("\\b" + word + "\\s+(?:\\w+\\s+)?" + escaped, "i");
-    if (rx.test(text)) return item.unit === "piece" ? n : 1;
-  }
-  if (/handje/i.test(text) && ["blauwe bessen","bosbessen","noten","amandelen","spinazie"].includes(term)) return 1;
-  if (/stengel/i.test(text) && ["bleekselderij","selderij"].includes(term)) return 1;
-  return 1;
+function normalizeText(text) {
+  return text.toLowerCase().replace(/\blijnwafels?\b/g,"linzenwafels").replace(/\blinzewafels?\b/g,"linzenwafels");
 }
+function escapedRx(value) { return value.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+function quantityFor(text, term, item) {
+  const e=escapedRx(term);
+  // Expliciet gewicht of volume direct voor het product.
+  let m=text.match(new RegExp("(\\d+(?:[\\.,]\\d+)?)\\s*(kg|gram|gr|g|ml|cl|liter|l)\\s*(?:\\w+\\s+){0,3}"+e,"i"));
+  if(m){
+    let n=Number(m[1].replace(",",".")); const u=m[2].toLowerCase();
+    if(u==="kg") n*=1000; else if(u==="cl") n*=10; else if(u==="liter"||u==="l") n*=1000;
+    return {factor:n/Number(item.serving||1), display:`${Math.round(n)} ${item.unit==="ml"?"ml":"g"}`, exact:true};
+  }
+  // Aantal stuks/plakken/broodjes/wafels.
+  const words=(item.countWords||[term]).map(escapedRx).join("|");
+  m=text.match(new RegExp("(\\d+(?:[\\.,]\\d+)?)\\s*(?:"+words+")","i"));
+  if(m){ const n=Number(m[1].replace(",",".")); return {factor:n,display:`${n} ${n===1?"stuk":"stuks"}`,exact:true}; }
+  const wordNumbers={een:1,"één":1,twee:2,drie:3,vier:4,vijf:5,zes:6};
+  for(const [word,n] of Object.entries(wordNumbers)){
+    if(new RegExp("\\b"+word+"\\s+(?:"+words+")","i").test(text)) return {factor:n,display:`${n} ${n===1?"stuk":"stuks"}`,exact:true};
+  }
+  if(/handje/i.test(text) && ["berries","walnuts","nuts","spinach"].includes(item.id)) return {factor:1,display:`standaardportie`,exact:false};
+  const label=item.unit==="piece"?"1 stuk":`${item.serving} ${item.unit}`;
+  return {factor:1,display:label,exact:false};
+}
+function rangesOverlap(a,b){ return a.start<b.end && b.start<a.end; }
 function analyseMeal(text) {
-  const lower = text.toLowerCase();
-  const found = [];
-  let result = {kcal:0, protein:0, carbs:0, fat:0};
-  const used = new Set();
-
-  foodDB.forEach(item => {
-    const term = item.terms.find(t => lower.includes(t));
-    if (!term || used.has(item)) return;
-    used.add(item);
-    const factor = findQuantity(lower, term, item);
-    ["kcal","protein","carbs","fat"].forEach(k => result[k] += item[k] * factor);
-    found.push(term);
+  const lower=normalizeText(text);
+  const matches=[];
+  // Langste en meest specifieke termen eerst; overlappende generieke matches worden overgeslagen.
+  const candidates=[];
+  allFoodDB().forEach((item,dbIndex)=>{
+    (item.terms||[]).forEach(term=>{
+      let pos=lower.indexOf(term.toLowerCase());
+      if(pos>=0) candidates.push({item,term:term.toLowerCase(),start:pos,end:pos+term.length,score:term.length+(item.personal?1000:0),dbIndex});
+    });
   });
-
-  Object.keys(result).forEach(k => result[k] = Math.max(0, Math.round(result[k])));
-  return {...result, found};
+  candidates.sort((a,b)=>b.score-a.score || a.start-b.start);
+  const accepted=[]; const usedIds=new Set();
+  candidates.forEach(c=>{
+    if(usedIds.has(c.item.id) || accepted.some(a=>rangesOverlap(a,c))) return;
+    // Kaas niet dubbel herkennen wanneer Beemster al gevonden is.
+    if(c.item.id==="cheese" && accepted.some(a=>a.item.id==="beemster")) return;
+    // Brood niet dubbel herkennen in broodje/boterham.
+    if(c.item.id==="bread" && accepted.some(a=>a.item.id==="speltbroodje")) return;
+    accepted.push(c); usedIds.add(c.item.id);
+  });
+  let result={kcal:0,protein:0,carbs:0,fat:0,fiber:0};
+  accepted.sort((a,b)=>a.start-b.start).forEach(c=>{
+    const q=quantityFor(lower,c.term,c.item);
+    const nutrients={};
+    ["kcal","protein","carbs","fat","fiber"].forEach(k=>{ nutrients[k]=Number(c.item[k]||0)*q.factor; result[k]+=nutrients[k]; });
+    matches.push({name:c.item.name||c.term,term:c.term,quantity:q.display,exact:q.exact,...nutrients});
+  });
+  Object.keys(result).forEach(k=>result[k]=Math.max(0,Math.round(result[k]*10)/10));
+  return {...result,found:matches.map(x=>x.name),breakdown:matches,confidence:matches.length?Math.round(matches.filter(x=>x.exact).length/matches.length*100):0};
 }
 function foodCoach(meal, currentTotals) {
   const afterProtein = currentTotals.protein + meal.protein;
@@ -720,7 +780,7 @@ function renderMeals() {
   list.innerHTML = state.meals.map((m,i) => `
     <div class="meal">
       <div class="mealTitle">${i+1}. ${escapeHtml(m.text)}</div>
-      <div class="mealMeta">${m.kcal} kcal · ${m.protein} g eiwit · ${m.carbs} g koolhydraten · ${m.fat} g vet</div>
+      <div class="mealMeta">${m.kcal} kcal · ${m.protein} g eiwit · ${m.carbs} g koolhydraten · ${m.fat} g vet · ${m.fiber || 0} g vezels</div>
     </div>`).join("");
 }
 function escapeHtml(s) {
@@ -960,7 +1020,7 @@ function renderMeasurements() {
 const suggestionTerms = [
   "blauwe bessen","banaan","havermout","ei","eieren","whey","yoghurt","kwark",
   "kaneel","citroen","water","melk","noten","amandelen","spinazie","avocado",
-  "kipfilet","zalm","tonijn","rijst","aardappelen"
+  "kipfilet","zalm","tonijn","rijst","aardappelen","speltbroodje","Beemster","linzenwafels"
 ];
 
 function getSelectedIngredients() {
@@ -1113,6 +1173,21 @@ function saveCurrentAsRecipe() {
   renderRecipes();
 }
 
+function renderCustomFoods() {
+  const box=document.getElementById("customFoodList"); if(!box) return;
+  const list=Array.isArray(state.personalFoods)?state.personalFoods:[];
+  box.innerHTML=list.length?list.map((x,i)=>`<div class="personalProduct"><div class="personalProductTop"><div><b>${escapeHtml(x.name)}</b><div class="small">Per ${x.serving} ${x.unit==="piece"?"stuk":x.unit}: ${x.kcal} kcal · ${x.protein} g eiwit · ${x.carbs} g KH · ${x.fat} g vet · ${x.fiber||0} g vezels</div></div><button type="button" data-delete-food="${i}">Verwijder</button></div></div>`).join(""):'<div class="small" style="margin-top:10px">Nog geen eigen producten toegevoegd.</div>';
+  box.querySelectorAll("[data-delete-food]").forEach(btn=>btn.addEventListener("click",()=>{state.personalFoods.splice(Number(btn.dataset.deleteFood),1);save();renderCustomFoods();}));
+}
+function addCustomFood(){
+  const val=id=>document.getElementById(id)?.value.trim();
+  const name=val("customFoodName"); const serving=Number(val("customFoodServing"));
+  if(!name||!serving){alert("Vul minimaal een naam en portie in.");return;}
+  const item={name:name.toLowerCase(),serving,unit:val("customFoodUnit"),kcal:Number(val("customFoodKcal")||0),protein:Number(val("customFoodProtein")||0),carbs:Number(val("customFoodCarbs")||0),fat:Number(val("customFoodFat")||0),fiber:Number(val("customFoodFiber")||0)};
+  if(!Array.isArray(state.personalFoods)) state.personalFoods=[]; state.personalFoods.push(item); save(); renderCustomFoods();
+  ["customFoodName","customFoodServing","customFoodKcal","customFoodProtein","customFoodCarbs","customFoodFat","customFoodFiber"].forEach(id=>document.getElementById(id).value="");
+}
+
 function runMealAnalysis() {
   const text = document.getElementById("mealText").value.trim();
   if (!text) {
@@ -1125,9 +1200,11 @@ function runMealAnalysis() {
   document.getElementById("resultProtein").textContent = pendingMeal.protein + " g";
   document.getElementById("resultCarbs").textContent = pendingMeal.carbs + " g";
   document.getElementById("resultFat").textContent = pendingMeal.fat + " g";
-  document.getElementById("estimateNote").textContent =
-    pendingMeal.found.length
-      ? "Herkend: " + pendingMeal.found.join(", ") + ". Dit blijft een praktische schatting."
+  document.getElementById("resultFiber").textContent = pendingMeal.fiber + " g";
+  const breakdown=document.getElementById("foodBreakdown");
+  breakdown.innerHTML=pendingMeal.breakdown.length?pendingMeal.breakdown.map(x=>`<div class="foodBreakdownRow"><div><div class="foodBreakdownName">${escapeHtml(x.name)}</div><div class="foodBreakdownMeta">${escapeHtml(x.quantity)}${x.exact?"":" · standaardportie"}</div></div><div class="foodBreakdownValue">${Math.round(x.kcal)} kcal<div class="foodBreakdownMeta">${Math.round(x.protein*10)/10} g eiwit</div></div></div>`).join(""):'<div class="foodBreakdownRow"><div class="small">Geen product herkend.</div></div>';
+  document.getElementById("estimateNote").textContent = pendingMeal.found.length
+      ? `Herkend: ${pendingMeal.found.join(", ")}. ${pendingMeal.confidence===100?"Hoeveelheden duidelijk herkend.":"Een of meer standaardporties gebruikt; pas de tekst aan voor meer nauwkeurigheid."}`
       : "Nog geen herkenbare producten gevonden.";
   document.getElementById("foodAdvice").textContent = foodCoach(pendingMeal, t);
   document.getElementById("analysisCard").classList.remove("hidden");
@@ -1330,11 +1407,13 @@ function render() {
   document.getElementById("todayCalories").textContent = `${t.kcal} kcal`;
   document.getElementById("todayProtein").textContent = `${t.protein} g`;
   document.getElementById("dayCaloriesFood").textContent = `${t.kcal} kcal`;
-  document.getElementById("dayProteinFood").textContent = `${t.protein} g`;
+  document.getElementById("dayProteinFood").textContent = `${Math.round(t.protein*10)/10} g`;
+  document.getElementById("dayFiberFood").textContent = `${Math.round(t.fiber*10)/10} g`;
   document.getElementById("proteinLeftFood").textContent = `${proteinLeft} g`;
   document.getElementById("dayAdvice").textContent = dayCoach(t);
   renderMeals();
   renderRecipes();
+  renderCustomFoods();
   updateMealSuggestions();
 }
 function showScreen(id) {
@@ -1377,6 +1456,7 @@ function bind() {
   });
 
   on("analyseBtn", "click", runMealAnalysis);
+  on("addCustomFoodBtn", "click", addCustomFood);
   on("saveRecipeBtn", "click", saveCurrentAsRecipe);
   on("clearMealTextBtn", "click", () => {
     const mealText = document.getElementById("mealText");
