@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <title>DLP Vitaal</title>
-  <!-- DLP Vitaal V0.4.7 – stabiliteit en basisroutine -->
+  <!-- DLP Vitaal V0.4.7a – stabiliteit en basisroutine -->
   <style>
     :root {
       --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0;
@@ -490,7 +490,7 @@ function setInput(id, value) {
 function hydrate() {
   ["activity","extra","proteinGoal","calorieGoal","weightWeekday","waistInterval",
     "creatineDone","omegaDone","d3Done","wheyDone","magnesiumDone",
-    "waterDone","dayDone","activityDone"].forEach(k => setInput(k, state[k]));
+    "dayDone","activityDone"].forEach(k => setInput(k, state[k]));
 }
 function totals() {
   return state.meals.reduce((a,m) => ({
@@ -843,14 +843,23 @@ function showScreen(id) {
 }
 function bind() {
   ["activity","extra","proteinGoal","calorieGoal","weightWeekday","waistInterval"].forEach(id => {
-    document.getElementById(id).addEventListener("change", e => {
-      state[id] = Number.isNaN(Number(e.target.value)) || e.target.tagName === "SELECT" ? e.target.value : Number(e.target.value);
-      save(); render();
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.addEventListener("change", e => {
+      state[id] = Number.isNaN(Number(e.target.value)) || e.target.tagName === "SELECT"
+        ? e.target.value
+        : Number(e.target.value);
+      save();
+      render();
     });
   });
-  ["creatineDone","omegaDone","d3Done","wheyDone","magnesiumDone","waterDone","dayDone","activityDone"].forEach(id => {
-    document.getElementById(id).addEventListener("change", e => {
-      state[id] = e.target.checked; save(); render();
+  ["creatineDone","omegaDone","d3Done","wheyDone","magnesiumDone","dayDone","activityDone"].forEach(id => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.addEventListener("change", e => {
+      state[id] = e.target.checked;
+      save();
+      render();
     });
   });
   document.querySelectorAll("[data-why]").forEach(btn => {
@@ -934,18 +943,31 @@ function bind() {
     });
   }
 
-  document.getElementById("waterGlassBtn").addEventListener("click", () => {
-    state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
-    save(); renderWater(); render();
-  });
-  document.getElementById("water250Btn").addEventListener("click", () => {
-    state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
-    save(); renderWater(); render();
-  });
-  document.getElementById("waterMinusBtn").addEventListener("click", () => {
-    state.waterMl = Math.max(0, Number(state.waterMl || 0) - 250);
-    save(); renderWater(); render();
-  });
+  const waterGlassBtn = document.getElementById("waterGlassBtn");
+  const water250Btn = document.getElementById("water250Btn");
+  const waterMinusBtn = document.getElementById("waterMinusBtn");
+
+  if (waterGlassBtn) {
+    waterGlassBtn.addEventListener("click", () => {
+      state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
+      save();
+      render();
+    });
+  }
+  if (water250Btn) {
+    water250Btn.addEventListener("click", () => {
+      state.waterMl = Math.max(0, Number(state.waterMl || 0) + 250);
+      save();
+      render();
+    });
+  }
+  if (waterMinusBtn) {
+    waterMinusBtn.addEventListener("click", () => {
+      state.waterMl = Math.max(0, Number(state.waterMl || 0) - 250);
+      save();
+      render();
+    });
+  }
 
   document.getElementById("resetBtn").addEventListener("click", () => {
     if (confirm("Alle lokale invoer wissen?")) {
